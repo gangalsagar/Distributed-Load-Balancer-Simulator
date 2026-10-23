@@ -1,17 +1,16 @@
 """
 Distributed Load Balancer Simulator - Interactive Streamlit Dashboard.
 
-Modern SaaS interface for single-node Round Robin CPU scheduling:
-- Refined SaaS light theme: Neutral off-white (#F8FAFC) canvas, pure white (#FFFFFF) elevated cards,
-  slate typography (#1E293B, #64748B), and polished indigo/electric blue (#4F46E5 / #3B82F6) accents.
-- Clean visual hierarchy, soft subtle shadows, rounded borders, and clear typography.
-- CPU execution timeline (Plotly) with distinct, elegant task slice colors and idle indicators.
-- Metrics summary KPI cards, interactive task table, and waiting vs. turnaround time comparisons.
+Horizon-Inspired UI/UX:
+- Clean, airy aesthetic with Plus Jakarta Sans typography.
+- Glassmorphic translucent cards (bg-white/40, border-white/60, backdrop-blur-xl).
+- Coral/peach vibrant accent (#FF5E3A), soft sky (#38BDF8), lavender (#C084FC), and lime highlights.
+- Rounded pill badges, floating headers, and luminous multi-color gradients.
+- Interactive CPU Gantt timeline and grouped metrics charts styled with matching vibrant pastels.
 """
 
 from typing import Any, Dict, List
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -27,141 +26,170 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Polished Modern SaaS Theme Stylesheet
+# Custom Horizon / Stitch Styling
 st.markdown(
     """
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
     <style>
-    /* Base canvas styling */
+    /* Global Base */
     .stApp {
-        background-color: #F8FAFC;
-        color: #0F172A;
-        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+        background: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+                    radial-gradient(circle at 90% 10%, rgba(192, 132, 252, 0.12) 0%, transparent 50%),
+                    radial-gradient(circle at 50% 80%, rgba(255, 94, 58, 0.06) 0%, transparent 60%),
+                    #FAFAF9;
+        color: #111111;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Headings */
     h1, h2, h3, h4, h5, h6 {
-        color: #0F172A !important;
-        font-weight: 600 !important;
-        letter-spacing: -0.02em;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        font-weight: 700 !important;
+        color: #000000 !important;
+        letter-spacing: -0.03em !important;
     }
 
-    /* Header component */
-    .saas-header {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 20px 24px;
+    /* Floating Navigation / Header Card */
+    .horizon-nav {
+        background: rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-radius: 9999px;
+        padding: 12px 28px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 24px;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
     }
-    .saas-title {
-        font-size: 1.45rem;
-        font-weight: 700;
-        color: #0F172A;
-        margin: 0;
-    }
-    .saas-subtitle {
-        font-size: 0.9rem;
-        color: #64748B;
-        margin-top: 4px;
-    }
-
-    /* Section Subheadings */
-    .saas-section-header {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #1E293B;
-        margin: 24px 0 12px 0;
+    .horizon-logo {
+        font-weight: 800;
+        font-size: 1.25rem;
+        color: #FF5E3A;
         display: flex;
         align-items: center;
         gap: 8px;
+        text-decoration: none;
+    }
+    .horizon-badge {
+        background: #D6ED7A;
+        color: #3F4C00;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 4px 10px;
+        border-radius: 9999px;
+    }
+
+    /* Glass Cards */
+    .horizon-card {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
+        margin-bottom: 20px;
     }
 
     /* KPI Cards */
-    .kpi-container {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-        margin-bottom: 24px;
+    .kpi-horizon-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
     }
-    .kpi-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 18px 20px;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    .kpi-horizon-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(255, 94, 58, 0.08);
     }
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
-    }
-    .kpi-label {
-        font-size: 0.78rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #64748B;
-    }
-    .kpi-value {
-        font-size: 1.75rem;
+    .kpi-pill {
+        font-size: 11px;
         font-weight: 700;
-        color: #0F172A;
-        margin-top: 6px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 9999px;
+        display: inline-block;
+        margin-bottom: 8px;
     }
-    .kpi-unit {
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: #94A3B8;
-        margin-left: 2px;
+    .kpi-val {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #000000;
+        line-height: 1.1;
+        letter-spacing: -0.04em;
     }
 
-    /* Primary and Secondary Action Buttons */
+    /* Section Subtitle */
+    .section-eyebrow {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #555555;
+        margin-bottom: 4px;
+    }
+    .section-headline {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #000000;
+        margin-bottom: 16px;
+        letter-spacing: -0.02em;
+    }
+
+    /* Buttons */
     button[kind="primary"] {
-        background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%) !important;
+        background: #FF5E3A !important;
         color: #FFFFFF !important;
         border: none !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        padding: 8px 16px !important;
-        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25) !important;
+        border-radius: 9999px !important;
+        font-weight: 700 !important;
+        padding: 10px 24px !important;
+        font-size: 0.95rem !important;
+        box-shadow: 0 4px 16px rgba(255, 94, 58, 0.35) !important;
+        transition: all 0.2s ease !important;
     }
     button[kind="primary"]:hover {
-        background: linear-gradient(135deg, #4338CA 0%, #3730A3 100%) !important;
-        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35) !important;
+        background: #F44923 !important;
+        box-shadow: 0 6px 20px rgba(255, 94, 58, 0.5) !important;
+        transform: scale(0.98);
     }
 
     button[kind="secondary"] {
-        background-color: #FFFFFF !important;
-        color: #334155 !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
+        background: rgba(255, 255, 255, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        backdrop-filter: blur(12px) !important;
+        color: #000000 !important;
+        border-radius: 9999px !important;
+        font-weight: 600 !important;
     }
     button[kind="secondary"]:hover {
-        background-color: #F8FAFC !important;
-        border-color: #4F46E5 !important;
-        color: #4F46E5 !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-color: #FF5E3A !important;
+        color: #FF5E3A !important;
     }
 
-    /* Empty state card */
-    .empty-state-card {
-        background-color: #FFFFFF;
-        border: 1px dashed #CBD5E1;
-        border-radius: 12px;
-        padding: 36px 24px;
+    /* Empty state */
+    .horizon-empty {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(20px);
+        border: 1px dashed rgba(255, 94, 58, 0.3);
+        border-radius: 16px;
+        padding: 40px 24px;
         text-align: center;
-        color: #64748B;
-        margin: 20px 0;
-    }
-
-    /* Card wrappers for charts and tables */
-    .content-box {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 18px 20px;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+        margin-top: 16px;
     }
     </style>
     """,
@@ -186,9 +214,20 @@ if "sim_run" not in st.session_state:
     st.session_state.sim_run = False
 
 
-# Sidebar Controls
+# Sidebar Controls (Airy Glassmorphism)
 with st.sidebar:
-    st.markdown("### Configuration")
+    st.markdown(
+        """
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <span style="color:#FF5E3A; font-weight:800; font-size:1.15rem;">Load Balancer</span>
+            <span class="horizon-badge">Simulator</span>
+        </div>
+        <p style="font-size:0.85rem; color:#555555; margin-bottom:20px;">
+            Distributed CPU Scheduling & Load Balancer Simulator
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
 
     algorithm = st.selectbox(
         "Scheduling Algorithm",
@@ -203,7 +242,7 @@ with st.sidebar:
         max_value=100,
         value=2,
         step=1,
-        help="CPU execution time slice allocated per turn (integer >= 1).",
+        help="Positive integer time slice allocated per execution slice.",
     )
 
     st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
@@ -211,36 +250,60 @@ with st.sidebar:
     if st.button("Run Simulation", type="primary", use_container_width=True):
         st.session_state.sim_run = True
 
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
+    col_b1, col_b2 = st.columns(2)
+    with col_b1:
         if st.button("Load Sample", use_container_width=True):
             st.session_state.tasks_df = get_default_tasks_df()
             st.session_state.sim_run = True
             st.rerun()
 
-    with col_btn2:
+    with col_b2:
         if st.button("Reset", use_container_width=True):
             st.session_state.tasks_df = get_default_tasks_df()
             st.session_state.sim_run = False
             st.rerun()
 
-    st.markdown("<hr style='border: none; border-top: 1px solid #E2E8F0; margin: 24px 0 16px 0;'>", unsafe_allow_html=True)
-    st.caption("Distributed Load Balancer Simulator · OS Mini-Project")
 
-
-# Main Dashboard Header
+# Floating Header Bar
 st.markdown(
     """
-    <div class="saas-header">
-        <h1 class="saas-title">Distributed Load Balancer Simulator</h1>
-        <p class="saas-subtitle">Interactive CPU scheduling analysis, execution timelines, and workload performance</p>
+    <div class="horizon-nav">
+        <div class="horizon-logo">
+            <span>Distributed Load Balancer Simulator</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px;">
+            <span style="font-size:0.85rem; color:#555555; font-weight:500;">Round Robin Preemptive Engine</span>
+            <span class="horizon-badge">Active</span>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-# Workload Input Section
-st.markdown('<div class="saas-section-header">Workload Configuration</div>', unsafe_allow_html=True)
+# Overview Banner
+st.markdown(
+    """
+    <div style="margin-bottom: 24px;">
+        <h1 style="font-size: 2.2rem; font-weight: 800; line-height: 1.15; margin: 0 0 6px 0;">
+            Distributed Load Balancer Simulator
+        </h1>
+        <p style="font-size: 1rem; color: #555555; margin: 0;">
+            An airy, interactive CPU scheduling environment designed for clear visualization and performance analysis.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# Workload Configuration Section
+st.markdown(
+    """
+    <div class="section-eyebrow">01 / Task Setup</div>
+    <div class="section-headline">Workload Configuration</div>
+    """,
+    unsafe_allow_html=True,
+)
 
 edited_df = st.data_editor(
     st.session_state.tasks_df,
@@ -294,12 +357,11 @@ try:
 except Exception as e:
     validation_error = str(e)
 
-
 if validation_error:
     st.error(f"Input validation error: {validation_error}")
 
 
-# Execution & Visualizations
+# Simulation Execution & Results Display
 if st.session_state.sim_run and not validation_error:
     if not validated_tasks:
         st.warning("No tasks configured. Please enter at least one task or click 'Load Sample'.")
@@ -308,15 +370,25 @@ if st.session_state.sim_run and not validation_error:
             slices, metrics = round_robin_schedule(validated_tasks, time_quantum=int(time_quantum))
             summary = calculate_metrics_summary(metrics)
 
-            # Performance Summary Cards
-            st.markdown('<div class="saas-section-header">Performance Overview</div>', unsafe_allow_html=True)
+            # Performance Metrics Cards (Horizon Style)
+            st.markdown(
+                """
+                <div style="margin-top: 24px;">
+                    <div class="section-eyebrow">02 / Performance</div>
+                    <div class="section-headline">Summary Metrics</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
             k1, k2, k3, k4 = st.columns(4)
             with k1:
                 st.markdown(
                     f"""
-                    <div class="kpi-card">
-                        <div class="kpi-label">Tasks Scheduled</div>
-                        <div class="kpi-value">{summary['total_tasks']}</div>
+                    <div class="kpi-horizon-card">
+                        <span class="kpi-pill" style="background: rgba(56, 189, 248, 0.2); color: #0284C7;">Workload</span>
+                        <div class="kpi-val">{summary['total_tasks']}</div>
+                        <div style="font-size: 0.8rem; color: #555555; margin-top: 4px;">Tasks Scheduled</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -324,9 +396,10 @@ if st.session_state.sim_run and not validation_error:
             with k2:
                 st.markdown(
                     f"""
-                    <div class="kpi-card">
-                        <div class="kpi-label">Avg Waiting Time</div>
-                        <div class="kpi-value">{summary['avg_waiting_time']:.2f}<span class="kpi-unit">units</span></div>
+                    <div class="kpi-horizon-card">
+                        <span class="kpi-pill" style="background: rgba(255, 94, 58, 0.18); color: #C2410C;">Latency</span>
+                        <div class="kpi-val">{summary['avg_waiting_time']:.2f} <span style="font-size: 1rem; color: #888;">units</span></div>
+                        <div style="font-size: 0.8rem; color: #555555; margin-top: 4px;">Average Waiting Time</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -334,9 +407,10 @@ if st.session_state.sim_run and not validation_error:
             with k3:
                 st.markdown(
                     f"""
-                    <div class="kpi-card">
-                        <div class="kpi-label">Avg Turnaround Time</div>
-                        <div class="kpi-value">{summary['avg_turnaround_time']:.2f}<span class="kpi-unit">units</span></div>
+                    <div class="kpi-horizon-card">
+                        <span class="kpi-pill" style="background: rgba(192, 132, 252, 0.25); color: #7E22CE;">Duration</span>
+                        <div class="kpi-val">{summary['avg_turnaround_time']:.2f} <span style="font-size: 1rem; color: #888;">units</span></div>
+                        <div style="font-size: 0.8rem; color: #555555; margin-top: 4px;">Avg Turnaround Time</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -344,16 +418,25 @@ if st.session_state.sim_run and not validation_error:
             with k4:
                 st.markdown(
                     f"""
-                    <div class="kpi-card">
-                        <div class="kpi-label">Makespan</div>
-                        <div class="kpi-value">{summary['makespan']}<span class="kpi-unit">units</span></div>
+                    <div class="kpi-horizon-card">
+                        <span class="kpi-pill" style="background: rgba(214, 237, 122, 0.5); color: #3F4C00;">Throughput</span>
+                        <div class="kpi-val">{summary['makespan']} <span style="font-size: 1rem; color: #888;">units</span></div>
+                        <div style="font-size: 0.8rem; color: #555555; margin-top: 4px;">Final Makespan</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
 
             # CPU Execution Timeline (Gantt)
-            st.markdown('<div class="saas-section-header">CPU Execution Timeline</div>', unsafe_allow_html=True)
+            st.markdown(
+                """
+                <div style="margin-top: 28px;">
+                    <div class="section-eyebrow">03 / Timeline</div>
+                    <div class="section-headline">CPU Execution Timeline</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
             idle_slices = identify_idle_intervals(slices)
             all_timeline_items = []
@@ -376,19 +459,19 @@ if st.session_state.sim_run and not validation_error:
 
             all_timeline_items.sort(key=lambda x: x["Start"])
 
-            # Refined modern SaaS palette for distinct tasks
-            saas_palette = [
-                "#4F46E5",  # Indigo (Primary)
-                "#0EA5E9",  # Sky Blue
-                "#3B82F6",  # Blue
-                "#6366F1",  # Violet Indigo
-                "#0284C7",  # Deep Sky
-                "#2563EB",  # Royal Blue
-                "#818CF8",  # Soft Indigo
+            # Stitch / Horizon dynamic theme palette
+            stitch_colors = [
+                "#FF5E3A",  # Horizon Coral (Primary)
+                "#38BDF8",  # Sky Blue
+                "#C084FC",  # Lavender Purple
+                "#D6ED7A",  # Lime Green
+                "#FF8A65",  # Peach
+                "#80B1C7",  # Soft Teal
+                "#FFD166",  # Warm Sun
             ]
             unique_tasks = sorted(list(set(s["task_id"] for s in slices)))
-            task_colors = {
-                tid: saas_palette[i % len(saas_palette)]
+            task_color_map = {
+                tid: stitch_colors[i % len(stitch_colors)]
                 for i, tid in enumerate(unique_tasks)
             }
 
@@ -399,31 +482,32 @@ if st.session_state.sim_run and not validation_error:
                 is_idle = item["Is Idle"]
 
                 if is_idle:
-                    bar_color = "#E2E8F0"
-                    border_color = "#CBD5E1"
-                    text_color = "#64748B"
+                    bar_color = "rgba(0, 0, 0, 0.05)"
+                    border_color = "rgba(0, 0, 0, 0.15)"
+                    text_color = "#666666"
                     label = f"Idle [{item['Start']}-{item['End']}]"
                 else:
-                    bar_color = task_colors.get(tid, "#4F46E5")
-                    border_color = "#FFFFFF"
-                    text_color = "#FFFFFF"
+                    bar_color = task_color_map.get(tid, "#FF5E3A")
+                    border_color = "rgba(255, 255, 255, 0.9)"
+                    # Contrast text check
+                    text_color = "#3F4C00" if bar_color == "#D6ED7A" else "#FFFFFF"
                     label = f"{tid} [{item['Start']}-{item['End']}]"
 
                 fig_timeline.add_trace(
                     go.Bar(
                         name=tid,
-                        y=["CPU Timeline"],
+                        y=["CPU"],
                         x=[item["Duration"]],
                         base=[item["Start"]],
                         orientation="h",
                         marker=dict(
                             color=bar_color,
-                            line=dict(color=border_color, width=1.5),
+                            line=dict(color=border_color, width=2),
                         ),
                         text=label,
                         textposition="inside",
                         insidetextanchor="middle",
-                        textfont=dict(color=text_color, size=12, family="Inter, sans-serif"),
+                        textfont=dict(color=text_color, size=12, family="Plus Jakarta Sans, sans-serif"),
                         hovertemplate=(
                             f"<b>{'Task ' + tid if not is_idle else 'CPU Idle'}</b><br>"
                             f"Start: {item['Start']}<br>"
@@ -436,27 +520,27 @@ if st.session_state.sim_run and not validation_error:
 
             fig_timeline.update_layout(
                 barmode="stack",
-                height=175,
-                paper_bgcolor="#FFFFFF",
-                plot_bgcolor="#FFFFFF",
-                font=dict(color="#0F172A", family="Inter, sans-serif"),
+                height=180,
+                paper_bgcolor="rgba(255, 255, 255, 0.5)",
+                plot_bgcolor="rgba(255, 255, 255, 0.5)",
+                font=dict(color="#111111", family="Plus Jakarta Sans, sans-serif"),
                 xaxis=dict(
                     title="Simulation Time (Units)",
-                    title_font=dict(color="#475569", size=12),
-                    tickfont=dict(color="#64748B", size=11),
-                    linecolor="#E2E8F0",
+                    title_font=dict(color="#555555", size=12),
+                    tickfont=dict(color="#555555", size=11),
+                    linecolor="rgba(0, 0, 0, 0.1)",
                     linewidth=1,
                     tickmode="linear",
                     tick0=0,
                     dtick=1 if summary["makespan"] <= 30 else max(1, summary["makespan"] // 20),
                     range=[0, summary["makespan"] + 0.3],
                     showgrid=True,
-                    gridcolor="#F1F5F9",
+                    gridcolor="rgba(0, 0, 0, 0.04)",
                 ),
                 yaxis=dict(
                     showticklabels=False,
                     showgrid=False,
-                    linecolor="#E2E8F0",
+                    linecolor="rgba(0, 0, 0, 0.1)",
                 ),
                 margin=dict(l=16, r=16, t=10, b=42),
                 legend=dict(
@@ -465,13 +549,22 @@ if st.session_state.sim_run and not validation_error:
                     y=1.05,
                     xanchor="left",
                     x=0,
-                    font=dict(size=11, color="#334155"),
+                    font=dict(size=11, color="#111111"),
                 ),
             )
             st.plotly_chart(fig_timeline, use_container_width=True)
 
             # Results Section: Table and Grouped Comparison Chart
-            st.markdown('<div class="saas-section-header">Results & Metrics Analysis</div>', unsafe_allow_html=True)
+            st.markdown(
+                """
+                <div style="margin-top: 28px;">
+                    <div class="section-eyebrow">04 / Deep Dive</div>
+                    <div class="section-headline">Task Analysis & Distribution</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
             col_tbl, col_plot = st.columns([1, 1], gap="medium")
 
             with col_tbl:
@@ -494,19 +587,19 @@ if st.session_state.sim_run and not validation_error:
                     comp_df = pd.DataFrame(results_rows)
                     fig_comp = go.Figure()
 
-                    # Modern paired palette: soft sky blue for waiting, deep indigo for turnaround
+                    # Sky Blue for Waiting, Horizon Coral for Turnaround
                     fig_comp.add_trace(
                         go.Bar(
                             x=comp_df["Task ID"],
                             y=comp_df["Waiting Time"],
                             name="Waiting Time",
                             marker=dict(
-                                color="#93C5FD",
-                                line=dict(color="#60A5FA", width=1),
+                                color="#38BDF8",
+                                line=dict(color="rgba(255, 255, 255, 0.8)", width=1.5),
                             ),
                             text=comp_df["Waiting Time"],
                             textposition="auto",
-                            textfont=dict(color="#1E3A8A"),
+                            textfont=dict(color="#00293B", family="Plus Jakarta Sans"),
                         )
                     )
                     fig_comp.add_trace(
@@ -515,37 +608,37 @@ if st.session_state.sim_run and not validation_error:
                             y=comp_df["Turnaround Time"],
                             name="Turnaround Time",
                             marker=dict(
-                                color="#4F46E5",
-                                line=dict(color="#4338CA", width=1),
+                                color="#FF5E3A",
+                                line=dict(color="rgba(255, 255, 255, 0.8)", width=1.5),
                             ),
                             text=comp_df["Turnaround Time"],
                             textposition="auto",
-                            textfont=dict(color="#FFFFFF"),
+                            textfont=dict(color="#FFFFFF", family="Plus Jakarta Sans"),
                         )
                     )
 
                     fig_comp.update_layout(
                         barmode="group",
                         height=290,
-                        paper_bgcolor="#FFFFFF",
-                        plot_bgcolor="#FFFFFF",
-                        font=dict(color="#0F172A", family="Inter, sans-serif"),
+                        paper_bgcolor="rgba(255, 255, 255, 0.5)",
+                        plot_bgcolor="rgba(255, 255, 255, 0.5)",
+                        font=dict(color="#111111", family="Plus Jakarta Sans, sans-serif"),
                         xaxis=dict(
                             title="Task ID",
-                            title_font=dict(color="#475569", size=12),
-                            tickfont=dict(color="#64748B", size=11),
-                            linecolor="#E2E8F0",
+                            title_font=dict(color="#555555", size=12),
+                            tickfont=dict(color="#555555", size=11),
+                            linecolor="rgba(0, 0, 0, 0.1)",
                             linewidth=1,
                             showgrid=False,
                         ),
                         yaxis=dict(
                             title="Time Units",
-                            title_font=dict(color="#475569", size=12),
-                            tickfont=dict(color="#64748B", size=11),
-                            linecolor="#E2E8F0",
+                            title_font=dict(color="#555555", size=12),
+                            tickfont=dict(color="#555555", size=11),
+                            linecolor="rgba(0, 0, 0, 0.1)",
                             linewidth=1,
                             showgrid=True,
-                            gridcolor="#F1F5F9",
+                            gridcolor="rgba(0, 0, 0, 0.04)",
                         ),
                         margin=dict(l=16, r=16, t=10, b=42),
                         legend=dict(
@@ -554,7 +647,7 @@ if st.session_state.sim_run and not validation_error:
                             y=1.04,
                             xanchor="right",
                             x=1,
-                            font=dict(size=11, color="#334155"),
+                            font=dict(size=11, color="#111111"),
                         ),
                     )
                     st.plotly_chart(fig_comp, use_container_width=True)
@@ -565,10 +658,12 @@ else:
     if not st.session_state.sim_run:
         st.markdown(
             """
-            <div class="empty-state-card">
-                <div style="font-weight: 600; font-size: 1.05rem; color: #1E293B;">Ready to Simulate</div>
-                <div style="font-size: 0.88rem; color: #64748B; margin-top: 6px;">
-                    Configure or edit tasks in the table above, then click <b>Run Simulation</b> in the sidebar.
+            <div class="horizon-empty">
+                <div style="font-weight: 700; font-size: 1.15rem; color: #000000; margin-bottom: 6px;">
+                    Ready to Simulate
+                </div>
+                <div style="font-size: 0.9rem; color: #555555; max-width: 480px; margin: 0 auto;">
+                    Configure your task parameters above or click <b style="color: #FF5E3A;">Run Simulation</b> in the sidebar to visualize the execution timeline.
                 </div>
             </div>
             """,
