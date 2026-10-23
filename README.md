@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Distributed Load Balancer Simulator
 *Simulating Task Scheduling Across Multiple Nodes*
 
@@ -13,14 +12,15 @@ In modern distributed environments, scheduling algorithms determine how computat
 
 | Component | Status | Details |
 |---|---|---|
-| **Project Structure & Environment** | Completed | Clean layout, `.venv` configured, dependencies documented |
+| **Project Structure & Environment** | Completed | Clean layout, `.venv` configured, dependencies documented in `requirements.txt` |
 | **Task Management (`task_manager.py`)** | Completed | Task generation, strict type & domain validation, deep-copy preparation |
-| **CLI Entry Point (`main.py`)** | Completed | Formatted summary table, total burst time, architecture roadmap |
-| **Automated Unit Tests (`tests/`)** | Completed | 100% passed using Python standard `unittest` |
-| **Schedulers (`schedulers/`)** | Planned | Placeholders with design documentation for FCFS, SJF, and Round Robin |
-| **Node Simulator (`node_simulator.py`)** | Planned | Placeholder with design documentation for multi-node simulation |
-| **Metrics Engine (`metrics.py`)** | Planned | Placeholder with design documentation for performance evaluation |
-| **Streamlit Web Dashboard** | Planned | Planned interactive UI and Gantt timeline charts |
+| **CLI Entry Point (`main.py`)** | Completed | Terminal summary table, execution slices, metrics, and roadmap |
+| **Round Robin Scheduler (`schedulers/round_robin.py`)** | Completed | Preemptive single-node Round Robin with configurable quantum and FIFO queue |
+| **Metrics Engine (`metrics.py`)** | Completed | Aggregates KPIs (Waiting time, Turnaround time, Makespan) and identifies idle intervals |
+| **Streamlit Web Dashboard (`app.py`)** | Completed | Interactive UI, dynamic task editor, KPI cards, Plotly Gantt chart with idle time, and metrics comparisons |
+| **Automated Unit Tests (`tests/`)** | Completed | 100% passed (25 tests covering task manager, round robin, and metrics) |
+| **Node Simulator (`node_simulator.py`)** | Planned | Multi-node cluster simulation and task load balancing (future stage) |
+| **Additional Schedulers (`schedulers/`)** | Planned | Placeholders for FCFS and SJF (future stage) |
 
 ---
 
@@ -29,23 +29,26 @@ In modern distributed environments, scheduling algorithms determine how computat
 ```text
 distributed-load-balancer-simulator/
 │
-├── main.py                     # CLI entry-point program
+├── app.py                      # Interactive Streamlit Web Dashboard
+├── main.py                     # CLI demonstration entry-point program
 ├── task_manager.py             # Task data structures, validation & preparation
+├── metrics.py                  # Performance metrics aggregation & idle gap detection
 ├── node_simulator.py           # [Planned] Multi-node simulation engine
-├── metrics.py                  # [Planned] Performance metrics calculation
-├── requirements.txt            # Project dependencies
+├── requirements.txt            # Project dependencies (streamlit, pandas, plotly)
 ├── README.md                   # Project documentation
 ├── .gitignore                  # Git ignore rules
 │
 ├── schedulers/                 # CPU Scheduling algorithm modules
 │   ├── __init__.py
+│   ├── round_robin.py          # Round Robin CPU scheduler (preemptive)
 │   ├── fcfs.py                 # [Planned] First-Come, First-Served
-│   ├── sjf.py                  # [Planned] Shortest Job First (non-preemptive)
-│   └── round_robin.py          # [Planned] Round Robin (preemptive)
+│   └── sjf.py                  # [Planned] Shortest Job First (non-preemptive)
 │
 └── tests/                      # Automated unit test suite
     ├── __init__.py
-    └── test_task_manager.py    # Unit tests for task management
+    ├── test_task_manager.py    # Unit tests for task management
+    ├── test_round_robin.py     # Unit tests for Round Robin scheduling
+    └── test_metrics.py         # Unit tests for metrics engine
 ```
 
 ---
@@ -84,20 +87,25 @@ pip install -r requirements.txt
 
 ## 5. Running the Application
 
-Execute the entry-point script:
+### Option A: Interactive Streamlit Web Dashboard
+To launch the graphical dashboard with interactive workload editing, Gantt chart, and KPI cards:
 ```bash
-python main.py
-# Or using the virtual environment directly:
-.\.venv\Scripts\python.exe main.py
+streamlit run app.py
+```
+Or using the virtual environment directly:
+```bash
+.\.venv\Scripts\streamlit.exe run app.py
 ```
 
-### Expected Output
-- Project title and header.
-- Formatted table of generated sample tasks (T1 to T4).
-- Total tasks: `4`.
-- Total CPU burst time: `18` units.
-- Confirmation of successful generation and validation.
-- Outline of planned upcoming modules.
+### Option B: Command-Line Demonstration
+To run the terminal-based workload generation and Round Robin demonstration:
+```bash
+python main.py
+```
+Or using the virtual environment directly:
+```bash
+.\.venv\Scripts\python.exe main.py
+```
 
 ---
 
@@ -106,7 +114,9 @@ python main.py
 Run the test suite using Python's built-in `unittest` runner:
 ```bash
 python -m unittest discover -s tests
-# Or using the virtual environment directly:
+```
+Or using the virtual environment directly:
+```bash
 .\.venv\Scripts\python.exe -m unittest discover -s tests
 ```
 
@@ -114,20 +124,10 @@ python -m unittest discover -s tests
 
 ## 7. Roadmap & Next Stages
 
-1. **Stage 2: Scheduling Algorithms (`schedulers/`)**
+1. **Stage 2: Additional CPU Schedulers (`schedulers/`)**
    - Implement FCFS with arrival ordering and deterministic tie-breaking.
    - Implement non-preemptive SJF selecting ready tasks with minimum burst time.
-   - Implement preemptive Round Robin with configurable time quantum ($q$) and requeueing.
 2. **Stage 3: Distributed Node Simulation (`node_simulator.py`)**
    - Simulate a cluster of $N$ worker nodes.
    - Load balancing policies (e.g., Round Robin node allocation, Least Loaded).
    - Event timeline recording (task dispatch, execution ticks, completion).
-3. **Stage 4: Metrics Engine (`metrics.py`)**
-   - Compute waiting time, turnaround time, makespan, and node utilization percentage.
-4. **Stage 5: Interactive Web Dashboard (`dashboard.py` / Streamlit)**
-   - Dynamic Gantt charts using Plotly.
-   - Interactive algorithm comparison and parameter tuning.
-=======
-# Distributed-Load-Balancer-Simulator
- Simulating Task Scheduling Across Multiple Nodes
->>>>>>> 88ca63d3d3712410b2a3ba5f640ddc18b6563213
