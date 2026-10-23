@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Distributed Load Balancer Simulator
 *Simulating Task Scheduling Across Multiple Nodes*
 
@@ -126,3 +127,7 @@ python -m unittest discover -s tests
 4. **Stage 5: Interactive Web Dashboard (`dashboard.py` / Streamlit)**
    - Dynamic Gantt charts using Plotly.
    - Interactive algorithm comparison and parameter tuning.
+=======
+# Distributed-Load-Balancer-Simulator
+ Simulating Task Scheduling Across Multiple Nodes
+>>>>>>> 88ca63d3d3712410b2a3ba5f640ddc18b6563213
