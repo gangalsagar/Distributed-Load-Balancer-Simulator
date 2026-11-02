@@ -1,6 +1,22 @@
-.venv/
+# Python
 __pycache__/
 *.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Test cache
 .pytest_cache/
-.streamlit/secrets.toml
+
+# Environment
 .env
+.streamlit/secrets.toml
+
+# Node (React src - not needed for Python server)
+node_modules/
+dist/
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db

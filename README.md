@@ -1,204 +1,148 @@
-<<<<<<< HEAD
-# Distributed Load Balancer Simulator (Pure Python)
-*Simulating CPU Task Scheduling and Multi-Node Cluster Load Balancing*
+# Distributed Load Balancer & CPU Scheduling Simulator
 
-## 1. Overview
-The **Distributed Load Balancer Simulator** is an interactive web and CLI simulation platform written **entirely in Python 3** using the standard library. It models and visualizes preemptive and non-preemptive task scheduling algorithms (Round Robin, FCFS, and SJF) as well as multi-node cluster load balancing.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests: 20 Passed](https://img.shields.io/badge/tests-20%20passed-brightgreen.svg)]()
 
-Zero external pip dependencies are required — it runs directly on standard Python 3.10+.
-
----
-
-## 2. Key Modules & Architecture
-=======
-# Distributed Load Balancer Simulator
-*Simulating Task Scheduling Across Multiple Nodes*
-
-## 1. Overview
-The **Distributed Load Balancer Simulator** is an Operating Systems mini-project that models and visualizes distributed task scheduling and load balancing across multiple computing nodes.
-
-In modern distributed environments, scheduling algorithms determine how computational tasks are dispatched to compute nodes to maximize throughput, minimize turnaround/waiting times, and achieve balanced resource utilization.
+An interactive simulation platform designed to model, analyze, and visualize classic Operating System CPU scheduling algorithms and multi-node cluster load balancing.
 
 ---
 
-## 2. Current Implementation Status
+## 📋 System Prerequisites
 
-| Component | Status | Details |
-|---|---|---|
-| **Project Structure & Environment** | Completed | Clean layout, `.venv` configured, dependencies documented in `requirements.txt` |
-| **Task Management (`task_manager.py`)** | Completed | Task generation, strict type & domain validation, deep-copy preparation |
-| **CLI Entry Point (`main.py`)** | Completed | Terminal summary table, execution slices, metrics, and roadmap |
-| **Round Robin Scheduler (`schedulers/round_robin.py`)** | Completed | Preemptive single-node Round Robin with configurable quantum and FIFO queue |
-| **FCFS Scheduler (`schedulers/fcfs.py`)** | Completed | Non-preemptive First-Come, First-Served CPU scheduling with deterministic tie-breaking |
-| **SJF Scheduler (`schedulers/sjf.py`)** | Completed | Non-preemptive Shortest Job First CPU scheduling with deterministic tie-breaking |
-| **Metrics Engine (`metrics.py`)** | Completed | Aggregates KPIs (Waiting time, Turnaround time, Makespan) and identifies idle intervals |
-| **Streamlit Web Dashboard (`app.py`)** | Completed | Interactive UI, algorithm selector (RR, FCFS, SJF), dynamic task editor, KPI cards, Plotly Gantt chart with idle time, and metrics comparisons |
-| **Automated Unit Tests (`tests/`)** | Completed | 100% passed (42 tests covering task manager, round robin, fcfs, sjf, and metrics) |
-| **Node Simulator (`node_simulator.py`)** | Planned | Multi-node cluster simulation and task load balancing (future stage) |
+Before running this project, ensure you have the following installed on your machine:
+
+1. **Python 3.10 or higher**
+   - Download: [python.org/downloads](https://www.python.org/downloads/)
+   - *Windows Note:* Ensure you check the box **"Add Python to PATH"** during installation.
+2. **Git** (for cloning and version control)
+   - Download: [git-scm.com](https://git-scm.com/)
+3. **A Modern Web Browser** (Chrome, Edge, Firefox, Brave, Safari) to view the interactive UI.
 
 ---
 
-## 3. Project Structure
->>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
+## ⚙️ Environment Setup & Installation
 
-```text
-distributed-load-balancer-simulator/
-│
-<<<<<<< HEAD
-├── app.py                      # Pure Python web server (port 3000) & interactive dashboard
-├── main.py                     # Pure Python CLI demonstration & terminal visualization
-├── task_manager.py             # Task schema, type validation, sample generation
-├── metrics.py                  # KPI calculations, idle gap detection, comparison engine
-├── node_simulator.py           # Stage 3 multi-node cluster load balancing simulator
-├── requirements.txt            # Project specification (pure Python standard library)
-├── README.md                   # Project documentation
-│
-├── schedulers/                 # CPU Scheduling algorithm modules
-│   ├── __init__.py
-│   ├── round_robin.py          # Preemptive Round Robin with configurable quantum
-│   ├── fcfs.py                 # Non-preemptive First-Come, First-Served scheduler
-│   └── sjf.py                  # Non-preemptive Shortest Job First scheduler
-│
-└── tests/                      # Automated unit test suite (20 unit tests)
-    ├── __init__.py
-    ├── test_task_manager.py    # Unit tests for task validation and preparation
-    ├── test_round_robin.py     # Unit tests for Round Robin scheduling
-    ├── test_fcfs.py            # Unit tests for FCFS scheduling
-    ├── test_sjf.py             # Unit tests for SJF scheduling
-    ├── test_metrics.py         # Unit tests for metrics engine
-    └── test_node_simulator.py  # Unit tests for multi-node cluster simulation
-=======
-├── app.py                      # Interactive Streamlit Web Dashboard
-├── main.py                     # CLI demonstration entry-point program
-├── task_manager.py             # Task data structures, validation & preparation
-├── metrics.py                  # Performance metrics aggregation & idle gap detection
-├── node_simulator.py           # [Planned] Multi-node simulation engine
-├── requirements.txt            # Project dependencies (streamlit, pandas, plotly)
-├── README.md                   # Project documentation
-├── .gitignore                  # Git ignore rules
-│
-├── schedulers/                 # CPU Scheduling algorithm modules
-│   ├── __init__.py
-│   ├── round_robin.py          # Round Robin CPU scheduler (preemptive)
-│   ├── fcfs.py                 # First-Come, First-Served CPU scheduler (non-preemptive)
-│   └── sjf.py                  # Shortest Job First CPU scheduler (non-preemptive)
-│
-└── tests/                      # Automated unit test suite
-    ├── __init__.py
-    ├── test_task_manager.py    # Unit tests for task management
-    ├── test_round_robin.py     # Unit tests for Round Robin scheduling
-    ├── test_fcfs.py            # Unit tests for FCFS scheduling
-    ├── test_sjf.py             # Unit tests for SJF scheduling
-    └── test_metrics.py         # Unit tests for metrics engine
->>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
-```
-
----
-
-<<<<<<< HEAD
-## 3. Running the Project
-
-### A. Run the Interactive Web Application
-Launch the standalone HTTP web dashboard (listening on `0.0.0.0:3000`):
+### Step 1: Clone the Repository
 ```bash
-python3 app.py
-```
-Open your browser to `http://localhost:3000` to interact with:
-- **Persistent Top Navigation Bar**: Constant across the whole website.
-- **Landing Page ("Distributed CPU Scheduling")**: Overview, algorithm breakdown, curated presets, and live interactive preview.
-- **Simulation**: Interactive task editor, configurable algorithms, KPI summary cards, SVG Gantt timeline with CPU idle gap visualization, metrics table, and chronological slice trace.
-- **Algorithm Comparison**: Side-by-side benchmarking of Round Robin, FCFS, and SJF against identical workloads.
-- **Cluster Balancer (Stage 3)**: Dispatches tasks across $N$ worker nodes using Least Loaded or Round Robin policies with per-node Gantt timelines.
-
-### B. Run the CLI Demonstration
-To run the terminal workload generator and scheduling demonstration:
-```bash
-python3 main.py
+git clone <your-repository-url>
+cd "OS Miniproject"
 ```
 
-### C. Run the Automated Test Suite
-Run the 20 unit tests covering every scheduler, metrics calculation, and cluster balancer:
-```bash
-python3 -m unittest discover -s tests
-```
-All tests execute in milliseconds using Python's built-in `unittest` runner.
-=======
-## 4. Setup and Installation
+### Step 2: (Recommended) Create and Activate a Virtual Environment
 
-### Prerequisites
-- Python 3.10 or newer (Tested on Python 3.13)
+Creating an isolated virtual environment keeps your project clean and organized:
 
-### 1. Create Virtual Environment
-```bash
-python -m venv .venv
-```
-
-### 2. Activate Virtual Environment
-- **Windows (PowerShell):**
+- **Windows (Command Prompt / PowerShell):**
   ```powershell
-  .\.venv\Scripts\Activate.ps1
+  python -m venv venv
+  .\venv\Scripts\activate
   ```
-- **Windows (Command Prompt):**
-  ```cmd
-  .\.venv\Scripts\activate.bat
-  ```
+
 - **macOS / Linux:**
   ```bash
-  source .venv/bin/activate
+  python3 -m venv venv
+  source venv/bin/activate
   ```
 
-### 3. Install Dependencies
+### Step 3: Dependencies
+This project is built **100% using Python's standard library** (`http.server`, `json`, `threading`, `collections`, etc.). 
+No third-party `pip` packages are strictly required. If you want to ensure your environment is verified:
 ```bash
 pip install -r requirements.txt
 ```
-*Dependencies:* `streamlit`, `pandas`, `plotly`.
 
 ---
 
-## 5. Running the Application
+## 🚀 How to Run
 
-### Option A: Interactive Streamlit Web Dashboard
-To launch the graphical dashboard with interactive workload editing, Gantt chart, and KPI cards:
+### 1. Launch the Interactive Web Dashboard
+Run the following command from the root directory:
+
 ```bash
-streamlit run app.py
-```
-Or using the virtual environment directly:
-```bash
-.\.venv\Scripts\streamlit.exe run app.py
+python app.py
 ```
 
-### Option B: Command-Line Demonstration
-To run the terminal-based workload generation and Round Robin demonstration:
+Then open your browser and go to:
+👉 **[http://localhost:3000](http://localhost:3000)**
+
+*(Windows users can also double-click `run.bat` or run `.\run.bat`)*
+
+---
+
+### 2. Run the CLI Simulation
+To run terminal-based workload generation and view scheduling slices in the console:
+
 ```bash
 python main.py
 ```
-Or using the virtual environment directly:
-```bash
-.\.venv\Scripts\python.exe main.py
-```
 
 ---
 
-## 6. Running Tests
+### 3. Run the Automated Unit Tests
+To verify all scheduler algorithms, metrics engines, and cluster simulators:
 
-Run the test suite using Python's built-in `unittest` runner:
 ```bash
 python -m unittest discover -s tests
 ```
-Or using the virtual environment directly:
-```bash
-.\.venv\Scripts\python.exe -m unittest discover -s tests
-```
 
 ---
 
-## 7. Roadmap & Next Stages
+## ✨ Features
 
-1. **Stage 2: Additional CPU Schedulers (`schedulers/`)**
-   - Implement FCFS with arrival ordering and deterministic tie-breaking.
-   - Implement non-preemptive SJF selecting ready tasks with minimum burst time.
-2. **Stage 3: Distributed Node Simulation (`node_simulator.py`)**
-   - Simulate a cluster of $N$ worker nodes.
-   - Load balancing policies (e.g., Round Robin node allocation, Least Loaded).
-   - Event timeline recording (task dispatch, execution ticks, completion).
->>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
+- **Interactive Simulation**:
+  - Add, edit, or remove custom tasks on the fly (Task ID, Arrival Time, Burst Time).
+  - Switch between scheduling algorithms (**Round Robin**, **FCFS**, and **SJF**).
+  - Dynamically configure Round Robin time quantum.
+  - Interactive SVG Gantt Chart with CPU idle gap visualization.
+  - Complete metrics breakdown (Turnaround Time, Waiting Time, Makespan, CPU Utilization).
+
+- **Algorithm Comparison**:
+  - Benchmark Round Robin, First-Come First-Served, and Shortest Job First simultaneously against identical workloads.
+  - Side-by-side performance comparison table and metrics breakdown highlighting top-performing policies.
+
+- **Multi-Node Cluster Simulation**:
+  - Model distributed workload distribution across $N$ worker nodes.
+  - Supports load balancing policies including **Least Loaded** and **Round Robin**.
+  - Visualizes per-node task assignments and overall cluster makespan.
+
+---
+
+## 🧠 Implemented Algorithms
+
+| Algorithm | Paradigm | Description |
+| :--- | :--- | :--- |
+| **Round Robin (RR)** | Preemptive | Tasks are allocated CPU in fixed time slices (quantum) with cyclic queue rotation. |
+| **First Come, First Served (FCFS)** | Non-preemptive | Tasks execute in the exact order of their arrival with deterministic tie-breaking. |
+| **Shortest Job First (SJF)** | Non-preemptive | Selects the task with the smallest burst time among all currently arrived tasks. |
+
+---
+
+## 📁 Repository Structure
+
+```text
+.
+├── app.py                      # Standalone HTTP server & web dashboard (Port 3000)
+├── main.py                     # CLI demonstration and terminal visualizer
+├── task_manager.py             # Task data structures, validation & preparation
+├── metrics.py                  # Performance calculation engine & idle gap detection
+├── node_simulator.py           # Multi-node cluster load balancing logic
+├── run.bat                     # Windows one-click execution shortcut
+├── requirements.txt            # Project specification
+├── README.md                   # Project documentation
+│
+├── schedulers/                 # CPU Scheduling core modules
+│   ├── __init__.py
+│   ├── round_robin.py          # Round Robin algorithm implementation
+│   ├── fcfs.py                 # First-Come, First-Served algorithm implementation
+│   └── sjf.py                  # Shortest Job First algorithm implementation
+│
+└── tests/                      # Automated test suite (20 unit tests)
+    ├── __init__.py
+    ├── test_task_manager.py    # Tests for task validation & schema
+    ├── test_round_robin.py     # Tests for Round Robin scheduler
+    ├── test_fcfs.py            # Tests for FCFS scheduler
+    ├── test_sjf.py             # Tests for SJF scheduler
+    ├── test_metrics.py         # Tests for KPI calculations
+    └── test_node_simulator.py  # Tests for multi-node load balancing
+```
