@@ -16,11 +16,12 @@ In modern distributed environments, scheduling algorithms determine how computat
 | **Task Management (`task_manager.py`)** | Completed | Task generation, strict type & domain validation, deep-copy preparation |
 | **CLI Entry Point (`main.py`)** | Completed | Terminal summary table, execution slices, metrics, and roadmap |
 | **Round Robin Scheduler (`schedulers/round_robin.py`)** | Completed | Preemptive single-node Round Robin with configurable quantum and FIFO queue |
+| **FCFS Scheduler (`schedulers/fcfs.py`)** | Completed | Non-preemptive First-Come, First-Served CPU scheduling with deterministic tie-breaking |
+| **SJF Scheduler (`schedulers/sjf.py`)** | Completed | Non-preemptive Shortest Job First CPU scheduling with deterministic tie-breaking |
 | **Metrics Engine (`metrics.py`)** | Completed | Aggregates KPIs (Waiting time, Turnaround time, Makespan) and identifies idle intervals |
-| **Streamlit Web Dashboard (`app.py`)** | Completed | Interactive UI, dynamic task editor, KPI cards, Plotly Gantt chart with idle time, and metrics comparisons |
-| **Automated Unit Tests (`tests/`)** | Completed | 100% passed (25 tests covering task manager, round robin, and metrics) |
+| **Streamlit Web Dashboard (`app.py`)** | Completed | Interactive UI, algorithm selector (RR, FCFS, SJF), dynamic task editor, KPI cards, Plotly Gantt chart with idle time, and metrics comparisons |
+| **Automated Unit Tests (`tests/`)** | Completed | 100% passed (42 tests covering task manager, round robin, fcfs, sjf, and metrics) |
 | **Node Simulator (`node_simulator.py`)** | Planned | Multi-node cluster simulation and task load balancing (future stage) |
-| **Additional Schedulers (`schedulers/`)** | Planned | Placeholders for FCFS and SJF (future stage) |
 
 ---
 
@@ -41,13 +42,15 @@ distributed-load-balancer-simulator/
 ├── schedulers/                 # CPU Scheduling algorithm modules
 │   ├── __init__.py
 │   ├── round_robin.py          # Round Robin CPU scheduler (preemptive)
-│   ├── fcfs.py                 # [Planned] First-Come, First-Served
-│   └── sjf.py                  # [Planned] Shortest Job First (non-preemptive)
+│   ├── fcfs.py                 # First-Come, First-Served CPU scheduler (non-preemptive)
+│   └── sjf.py                  # Shortest Job First CPU scheduler (non-preemptive)
 │
 └── tests/                      # Automated unit test suite
     ├── __init__.py
     ├── test_task_manager.py    # Unit tests for task management
     ├── test_round_robin.py     # Unit tests for Round Robin scheduling
+    ├── test_fcfs.py            # Unit tests for FCFS scheduling
+    ├── test_sjf.py             # Unit tests for SJF scheduling
     └── test_metrics.py         # Unit tests for metrics engine
 ```
 

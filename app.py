@@ -1,310 +1,139 @@
-"""
-Distributed Load Balancer Simulator - Interactive Streamlit Dashboard.
-
-Horizon-Inspired UI/UX:
-- Clean, airy aesthetic with Plus Jakarta Sans typography.
-- Glassmorphic translucent cards (bg-white/40, border-white/60, backdrop-blur-xl).
-- Coral/peach vibrant accent (#FF5E3A), soft sky (#38BDF8), lavender (#C084FC), and lime highlights.
-- Rounded pill badges, floating headers, and luminous multi-color gradients.
-- Interactive CPU Gantt timeline and grouped metrics charts styled with matching vibrant pastels.
-"""
-
 from typing import Any, Dict, List
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from metrics import calculate_metrics_summary, identify_idle_intervals
+from metrics import (
+    calculate_metrics_summary,
+    identify_idle_intervals,
+    run_algorithm_comparison,
+)
+from schedulers.fcfs import fcfs_schedule
 from schedulers.round_robin import round_robin_schedule
+from schedulers.sjf import sjf_schedule
 from task_manager import generate_sample_tasks, validate_tasks
 
-
-# Page Configuration
 st.set_page_config(
     page_title="Distributed Load Balancer Simulator",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# Custom Horizon / Stitch Styling
 st.markdown(
-    """
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-
-    <style>
-    /* Global Base */
-    .stApp {
-        background: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
-                    radial-gradient(circle at 90% 10%, rgba(192, 132, 252, 0.12) 0%, transparent 50%),
-                    radial-gradient(circle at 50% 80%, rgba(255, 94, 58, 0.06) 0%, transparent 60%),
-                    #FAFAF9;
-        color: #111111;
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    h1, h2, h3, h4, h5, h6 {
-        font-family: 'Plus Jakarta Sans', sans-serif !important;
-        font-weight: 700 !important;
-        color: #000000 !important;
-        letter-spacing: -0.03em !important;
-    }
-
-    /* Floating Navigation / Header Card */
-    .horizon-nav {
-        background: rgba(255, 255, 255, 0.65);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        border-radius: 9999px;
-        padding: 12px 28px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 24px;
-    }
-    .horizon-logo {
-        font-weight: 800;
-        font-size: 1.25rem;
-        color: #FF5E3A;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        text-decoration: none;
-    }
-    .horizon-badge {
-        background: #D6ED7A;
-        color: #3F4C00;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        padding: 4px 10px;
-        border-radius: 9999px;
-    }
-
-    /* Glass Cards */
-    .horizon-card {
-        background: rgba(255, 255, 255, 0.6);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.85);
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
-        margin-bottom: 20px;
-    }
-
-    /* KPI Cards */
-    .kpi-horizon-card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.9);
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
-        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    .kpi-horizon-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 12px 32px rgba(255, 94, 58, 0.08);
-    }
-    .kpi-pill {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        padding: 3px 8px;
-        border-radius: 9999px;
-        display: inline-block;
-        margin-bottom: 8px;
-    }
-    .kpi-val {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #000000;
-        line-height: 1.1;
-        letter-spacing: -0.04em;
-    }
-
-    /* Section Subtitle */
-    .section-eyebrow {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        color: #555555;
-        margin-bottom: 4px;
-    }
-    .section-headline {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #000000;
-        margin-bottom: 16px;
-        letter-spacing: -0.02em;
-    }
-
-    /* Buttons */
-    button[kind="primary"] {
-        background: #FF5E3A !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        border-radius: 9999px !important;
-        font-weight: 700 !important;
-        padding: 10px 24px !important;
-        font-size: 0.95rem !important;
-        box-shadow: 0 4px 16px rgba(255, 94, 58, 0.35) !important;
-        transition: all 0.2s ease !important;
-    }
-    button[kind="primary"]:hover {
-        background: #F44923 !important;
-        box-shadow: 0 6px 20px rgba(255, 94, 58, 0.5) !important;
-        transform: scale(0.98);
-    }
-
-    button[kind="secondary"] {
-        background: rgba(255, 255, 255, 0.6) !important;
-        border: 1px solid rgba(255, 255, 255, 0.8) !important;
-        backdrop-filter: blur(12px) !important;
-        color: #000000 !important;
-        border-radius: 9999px !important;
-        font-weight: 600 !important;
-    }
-    button[kind="secondary"]:hover {
-        background: rgba(255, 255, 255, 0.9) !important;
-        border-color: #FF5E3A !important;
-        color: #FF5E3A !important;
-    }
-
-    /* Empty state */
-    .horizon-empty {
-        background: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(20px);
-        border: 1px dashed rgba(255, 94, 58, 0.3);
-        border-radius: 16px;
-        padding: 40px 24px;
-        text-align: center;
-        margin-top: 16px;
-    }
-    </style>
-    """,
+    '\n    <style>\n    /* Global Base */\n    .stApp {\n        background-color: #FFFFFF;\n        color: #111111;\n        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;\n    }\n\n    /* Headings */\n    h1, h2, h3, h4, h5, h6 {\n        color: #111111 !important;\n        font-weight: 600 !important;\n        letter-spacing: -0.01em;\n    }\n\n    /* Compact Header */\n    .app-header {\n        border-bottom: 1px solid #111111;\n        padding-bottom: 12px;\n        margin-bottom: 24px;\n    }\n    .app-title {\n        font-size: 1.5rem;\n        font-weight: 700;\n        color: #111111;\n        margin: 0;\n        line-height: 1.2;\n    }\n    .app-subtitle {\n        font-size: 0.9rem;\n        color: #444444;\n        margin: 4px 0 0 0;\n    }\n\n    /* Metric Cards: clean rectangular with thin border */\n    .kpi-card {\n        border: 1px solid #111111;\n        border-radius: 4px;\n        padding: 14px 16px;\n        background-color: #FFFFFF;\n        text-align: left;\n    }\n    .kpi-label {\n        font-size: 0.75rem;\n        text-transform: uppercase;\n        letter-spacing: 0.05em;\n        color: #555555;\n        font-weight: 600;\n    }\n    .kpi-value {\n        font-size: 1.6rem;\n        font-weight: 700;\n        color: #111111;\n        margin-top: 4px;\n    }\n\n    /* Section Subheadings */\n    .section-title {\n        font-size: 1.05rem;\n        font-weight: 600;\n        color: #111111;\n        margin-top: 20px;\n        margin-bottom: 10px;\n        border-bottom: 1px solid #E5E7EB;\n        padding-bottom: 4px;\n    }\n\n    /* Primary and Secondary Buttons */\n    button[kind="primary"] {\n        background-color: #2563EB !important;\n        color: #FFFFFF !important;\n        border: 1px solid #2563EB !important;\n        border-radius: 4px !important;\n        font-weight: 600 !important;\n    }\n    button[kind="primary"]:hover {\n        background-color: #1D4ED8 !important;\n        border-color: #1D4ED8 !important;\n    }\n\n    button[kind="secondary"] {\n        background-color: #FFFFFF !important;\n        color: #111111 !important;\n        border: 1px solid #111111 !important;\n        border-radius: 4px !important;\n    }\n    button[kind="secondary"]:hover {\n        background-color: #F8FAFC !important;\n        border-color: #2563EB !important;\n        color: #2563EB !important;\n    }\n\n    /* Empty state box */\n    .empty-state {\n        border: 1px dashed #999999;\n        border-radius: 4px;\n        padding: 24px;\n        text-align: center;\n        color: #444444;\n        background-color: #FAFAFA;\n        margin-top: 16px;\n    }\n\n    /* Comparison highlight badge */\n    .best-badge {\n        background-color: #EFF6FF;\n        color: #1D4ED8;\n        border: 1px solid #2563EB;\n        padding: 2px 6px;\n        border-radius: 4px;\n        font-size: 0.8rem;\n        font-weight: 600;\n    }\n    </style>\n    ',
     unsafe_allow_html=True,
 )
 
 
 def get_default_tasks_df() -> pd.DataFrame:
-    """Return default sample workload as a DataFrame."""
     sample = generate_sample_tasks()
-    return pd.DataFrame([
-        {"Task ID": t["task_id"], "Arrival Time": t["arrival_time"], "Burst Time": t["burst_time"]}
-        for t in sample
-    ])
+    return pd.DataFrame(
+        [
+            {
+                "Task ID": t["task_id"],
+                "Arrival Time": t["arrival_time"],
+                "Burst Time": t["burst_time"],
+            }
+            for t in sample
+        ]
+    )
 
 
-# Session State Initialization
 if "tasks_df" not in st.session_state:
     st.session_state.tasks_df = get_default_tasks_df()
-
 if "sim_run" not in st.session_state:
     st.session_state.sim_run = False
-
-
-# Sidebar Controls (Airy Glassmorphism)
 with st.sidebar:
+    st.markdown("### Navigation")
+    app_mode = st.radio(
+        "Select Mode",
+        options=["Individual Simulation", "Algorithm Comparison"],
+        index=0,
+        help="Run a single scheduling algorithm or compare RR, FCFS, and SJF side-by-side on the same workload.",
+    )
     st.markdown(
-        """
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-            <span style="color:#FF5E3A; font-weight:800; font-size:1.15rem;">Load Balancer</span>
-            <span class="horizon-badge">Simulator</span>
-        </div>
-        <p style="font-size:0.85rem; color:#555555; margin-bottom:20px;">
-            Distributed CPU Scheduling & Load Balancer Simulator
-        </p>
-        """,
+        "<hr style='border: none; border-top: 1px solid #E5E7EB; margin: 16px 0;'>",
         unsafe_allow_html=True,
     )
-
-    algorithm = st.selectbox(
-        "Scheduling Algorithm",
-        options=["Round Robin (RR)"],
-        index=0,
-        help="Preemptive Round Robin CPU scheduler. FCFS and SJF are planned for future stages.",
+    st.markdown("### Controls")
+    if app_mode == "Individual Simulation":
+        algorithm = st.selectbox(
+            "Scheduling Algorithm",
+            options=[
+                "Round Robin (RR)",
+                "First Come, First Served (FCFS)",
+                "Shortest Job First (SJF — Non-Preemptive)",
+            ],
+            index=0,
+            help="Select CPU scheduler. RR is preemptive; FCFS and SJF are non-preemptive.",
+        )
+        if algorithm == "Round Robin (RR)":
+            time_quantum = st.number_input(
+                "Time Quantum (q)",
+                min_value=1,
+                max_value=100,
+                value=2,
+                step=1,
+                help="Positive integer time slice allocated per execution slice.",
+            )
+        else:
+            time_quantum = None
+    else:
+        time_quantum = st.number_input(
+            "Round Robin Quantum (q)",
+            min_value=1,
+            max_value=100,
+            value=2,
+            step=1,
+            help="Time quantum applied to Round Robin during the side-by-side comparison.",
+        )
+        algorithm = None
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+    btn_label = (
+        "Run Simulation" if app_mode == "Individual Simulation" else "Run Comparison"
     )
-
-    time_quantum = st.number_input(
-        "Time Quantum (q)",
-        min_value=1,
-        max_value=100,
-        value=2,
-        step=1,
-        help="Positive integer time slice allocated per execution slice.",
-    )
-
-    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-
-    if st.button("Run Simulation", type="primary", use_container_width=True):
+    if st.button(btn_label, type="primary", use_container_width=True):
         st.session_state.sim_run = True
-
     col_b1, col_b2 = st.columns(2)
     with col_b1:
         if st.button("Load Sample", use_container_width=True):
             st.session_state.tasks_df = get_default_tasks_df()
             st.session_state.sim_run = True
             st.rerun()
-
     with col_b2:
         if st.button("Reset", use_container_width=True):
             st.session_state.tasks_df = get_default_tasks_df()
             st.session_state.sim_run = False
             st.rerun()
-
-
-# Floating Header Bar
+    st.markdown(
+        "<hr style='border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;'>",
+        unsafe_allow_html=True,
+    )
+    st.caption("OS Mini-Project · CPU Scheduling Simulator")
 st.markdown(
-    """
-    <div class="horizon-nav">
-        <div class="horizon-logo">
-            <span>Distributed Load Balancer Simulator</span>
-        </div>
-        <div style="display:flex; align-items:center; gap:16px;">
-            <span style="font-size:0.85rem; color:#555555; font-weight:500;">Round Robin Preemptive Engine</span>
-            <span class="horizon-badge">Active</span>
-        </div>
-    </div>
-    """,
+    '\n    <div class="app-header">\n        <h1 class="app-title">Distributed Load Balancer Simulator</h1>\n        <p class="app-subtitle">Single-node CPU scheduling and performance analysis</p>\n    </div>\n    ',
     unsafe_allow_html=True,
 )
-
-# Overview Banner
+if app_mode == "Individual Simulation":
+    if algorithm == "First Come, First Served (FCFS)":
+        st.info(
+            "**FCFS:** Executes tasks in arrival order. It is non-preemptive, so a task runs until completion once execution begins."
+        )
+    elif algorithm == "Shortest Job First (SJF — Non-Preemptive)":
+        st.info(
+            "**SJF (Non-Preemptive):** At each scheduling decision, selects the available arrived task with the smallest burst time. Once execution begins, the task runs to completion without preemption."
+        )
+    else:
+        st.info(
+            "**Round Robin:** Gives tasks CPU time in turns using a configurable time quantum. Tasks that are not finished return to the ready queue."
+        )
+else:
+    st.info(
+        "**Algorithm Comparison:** Executes Round Robin, FCFS, and SJF against the **exact same workload** and compares their metrics, Gantt timelines, and CPU utilization fairly side-by-side."
+    )
 st.markdown(
-    """
-    <div style="margin-bottom: 24px;">
-        <h1 style="font-size: 2.2rem; font-weight: 800; line-height: 1.15; margin: 0 0 6px 0;">
-            Distributed Load Balancer Simulator
-        </h1>
-        <p style="font-size: 1rem; color: #555555; margin: 0;">
-            An airy, interactive CPU scheduling environment designed for clear visualization and performance analysis.
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
+    '<div class="section-title">Workload Configuration</div>', unsafe_allow_html=True
 )
-
-
-# Workload Configuration Section
-st.markdown(
-    """
-    <div class="section-eyebrow">01 / Task Setup</div>
-    <div class="section-headline">Workload Configuration</div>
-    """,
-    unsafe_allow_html=True,
-)
-
 edited_df = st.data_editor(
     st.session_state.tasks_df,
     num_rows="dynamic",
@@ -320,286 +149,220 @@ edited_df = st.data_editor(
     },
     key="editor_tasks",
 )
-
 st.session_state.tasks_df = edited_df
-
-# Validation
 validated_tasks: List[Dict[str, Any]] = []
 validation_error: str = ""
-
 try:
     raw_records = edited_df.to_dict("records")
     clean_records: List[Dict[str, Any]] = []
     for r in raw_records:
-        task_id = str(r.get("Task ID", "")).strip() if r.get("Task ID") is not None else ""
+        task_id = (
+            str(r.get("Task ID", "")).strip() if r.get("Task ID") is not None else ""
+        )
         arr_val = r.get("Arrival Time")
         burst_val = r.get("Burst Time")
-
-        if not task_id and arr_val is None and burst_val is None:
+        if not task_id and arr_val is None and (burst_val is None):
             continue
-
         if not task_id:
             raise ValueError("Task ID cannot be empty.")
         if arr_val is None or pd.isna(arr_val):
             raise ValueError(f"Task '{task_id}' has missing Arrival Time.")
         if burst_val is None or pd.isna(burst_val):
             raise ValueError(f"Task '{task_id}' has missing Burst Time.")
-
-        clean_records.append({
-            "task_id": task_id,
-            "arrival_time": int(arr_val),
-            "burst_time": int(burst_val),
-        })
-
+        clean_records.append(
+            {
+                "task_id": task_id,
+                "arrival_time": int(arr_val),
+                "burst_time": int(burst_val),
+            }
+        )
     if clean_records:
         validate_tasks(clean_records)
     validated_tasks = clean_records
 except Exception as e:
     validation_error = str(e)
-
 if validation_error:
     st.error(f"Input validation error: {validation_error}")
 
 
-# Simulation Execution & Results Display
-if st.session_state.sim_run and not validation_error:
-    if not validated_tasks:
-        st.warning("No tasks configured. Please enter at least one task or click 'Load Sample'.")
-    else:
-        try:
-            slices, metrics = round_robin_schedule(validated_tasks, time_quantum=int(time_quantum))
-            summary = calculate_metrics_summary(metrics)
+def create_gantt_figure(slices: List[Dict[str, Any]], makespan: int) -> go.Figure:
+    idle_slices = identify_idle_intervals(slices)
+    all_items = []
+    for s in slices:
+        all_items.append(
+            {
+                "Task ID": s["task_id"],
+                "Start": s["start_time"],
+                "End": s["end_time"],
+                "Duration": s["duration"],
+                "Is Idle": False,
+            }
+        )
+    for idle in idle_slices:
+        all_items.append(
+            {
+                "Task ID": "Idle",
+                "Start": idle["start_time"],
+                "End": idle["end_time"],
+                "Duration": idle["duration"],
+                "Is Idle": True,
+            }
+        )
+    all_items.sort(key=lambda x: x["Start"])
+    unique_tasks = sorted(list(set((s["task_id"] for s in slices))))
+    blue_shades = ["#2563EB", "#1D4ED8", "#3B82F6", "#60A5FA", "#1E40AF", "#93C5FD"]
+    color_map = {
+        tid: blue_shades[i % len(blue_shades)] for i, tid in enumerate(unique_tasks)
+    }
+    fig = go.Figure()
+    for item in all_items:
+        tid = item["Task ID"]
+        is_idle = item["Is Idle"]
+        if is_idle:
+            bar_color = "#FFFFFF"
+            border_color = "#111111"
+            text_color = "#111111"
+            label = f"Idle [{item['Start']}-{item['End']}]"
+        else:
+            bar_color = color_map.get(tid, "#2563EB")
+            border_color = "#111111"
+            text_color = "#FFFFFF"
+            label = f"{tid} [{item['Start']}-{item['End']}]"
+        fig.add_trace(
+            go.Bar(
+                name=tid,
+                y=["CPU"],
+                x=[item["Duration"]],
+                base=[item["Start"]],
+                orientation="h",
+                marker=dict(color=bar_color, line=dict(color=border_color, width=1.5)),
+                text=label,
+                textposition="inside",
+                insidetextanchor="middle",
+                textfont=dict(color=text_color, size=11, family="sans-serif"),
+                hovertemplate=f"<b>{('Task ' + tid if not is_idle else 'CPU Idle')}</b><br>Start Time: {item['Start']}<br>End Time: {item['End']}<br>Duration: {item['Duration']} units<extra></extra>",
+                showlegend=item["Start"]
+                == min((x["Start"] for x in all_items if x["Task ID"] == tid)),
+            )
+        )
+    fig.update_layout(
+        barmode="stack",
+        height=140,
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font=dict(color="#111111", family="sans-serif"),
+        xaxis=dict(
+            title="Simulation Time (Units)",
+            title_font=dict(color="#111111", size=11),
+            tickfont=dict(color="#111111", size=10),
+            linecolor="#111111",
+            linewidth=1,
+            tickmode="linear",
+            tick0=0,
+            dtick=1 if makespan <= 25 else max(1, makespan // 15),
+            range=[0, makespan + 0.2 if makespan > 0 else 1],
+            showgrid=True,
+            gridcolor="#F3F4F6",
+        ),
+        yaxis=dict(
+            showticklabels=False, linecolor="#111111", linewidth=1, showgrid=False
+        ),
+        margin=dict(l=10, r=10, t=10, b=35),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.05,
+            xanchor="left",
+            x=0,
+            font=dict(size=10, color="#111111"),
+        ),
+    )
+    return fig
 
-            # Performance Metrics Cards (Horizon Style)
+
+if st.session_state.sim_run and (not validation_error):
+    if not validated_tasks:
+        st.warning(
+            "No tasks configured. Please enter at least one task or click 'Load Sample'."
+        )
+    elif app_mode == "Individual Simulation":
+        try:
+            if algorithm == "Round Robin (RR)":
+                slices, metrics = round_robin_schedule(
+                    validated_tasks, time_quantum=int(time_quantum)
+                )
+            elif algorithm == "First Come, First Served (FCFS)":
+                slices, metrics = fcfs_schedule(validated_tasks)
+            else:
+                slices, metrics = sjf_schedule(validated_tasks)
+            summary = calculate_metrics_summary(metrics, slices)
             st.markdown(
-                """
-                <div style="margin-top: 24px;">
-                    <div class="section-eyebrow">02 / Performance</div>
-                    <div class="section-headline">Summary Metrics</div>
-                </div>
-                """,
+                '<div class="section-title">Performance Summary</div>',
                 unsafe_allow_html=True,
             )
-
             k1, k2, k3, k4 = st.columns(4)
             with k1:
                 st.markdown(
-                    f"""
-                    <div class="kpi-horizon-card">
-                        <span class="kpi-pill" style="background: rgba(56, 189, 248, 0.2); color: #0284C7;">Workload</span>
-                        <div class="kpi-val">{summary['total_tasks']}</div>
-                        <div style="font-size: 0.8rem; color: #555555; margin-top: 4px;">Tasks Scheduled</div>
-                    </div>
-                    """,
+                    f"""\n                    <div class="kpi-card">\n                        <div class="kpi-label">Tasks Scheduled</div>\n                        <div class="kpi-value">{summary["total_tasks"]}</div>\n                    </div>\n                    """,
                     unsafe_allow_html=True,
                 )
             with k2:
                 st.markdown(
-                    f"""
-                    <div class="kpi-horizon-card">
-                        <span class="kpi-pill" style="background: rgba(255, 94, 58, 0.18); color: #C2410C;">Latency</span>
-                        <div class="kpi-val">{summary['avg_waiting_time']:.2f} <span style="font-size: 1rem; color: #888;">units</span></div>
-                        <div style="font-size: 0.8rem; color: #555555; margin-top: 4px;">Average Waiting Time</div>
-                    </div>
-                    """,
+                    f"""\n                    <div class="kpi-card">\n                        <div class="kpi-label">Average Waiting Time</div>\n                        <div class="kpi-value">{summary["avg_waiting_time"]:.2f} <span style="font-size:0.9rem; font-weight:normal; color:#555555;">units</span></div>\n                    </div>\n                    """,
                     unsafe_allow_html=True,
                 )
             with k3:
                 st.markdown(
-                    f"""
-                    <div class="kpi-horizon-card">
-                        <span class="kpi-pill" style="background: rgba(192, 132, 252, 0.25); color: #7E22CE;">Duration</span>
-                        <div class="kpi-val">{summary['avg_turnaround_time']:.2f} <span style="font-size: 1rem; color: #888;">units</span></div>
-                        <div style="font-size: 0.8rem; color: #555555; margin-top: 4px;">Avg Turnaround Time</div>
-                    </div>
-                    """,
+                    f"""\n                    <div class="kpi-card">\n                        <div class="kpi-label">Average Turnaround Time</div>\n                        <div class="kpi-value">{summary["avg_turnaround_time"]:.2f} <span style="font-size:0.9rem; font-weight:normal; color:#555555;">units</span></div>\n                    </div>\n                    """,
                     unsafe_allow_html=True,
                 )
             with k4:
                 st.markdown(
-                    f"""
-                    <div class="kpi-horizon-card">
-                        <span class="kpi-pill" style="background: rgba(214, 237, 122, 0.5); color: #3F4C00;">Throughput</span>
-                        <div class="kpi-val">{summary['makespan']} <span style="font-size: 1rem; color: #888;">units</span></div>
-                        <div style="font-size: 0.8rem; color: #555555; margin-top: 4px;">Final Makespan</div>
-                    </div>
-                    """,
+                    f"""\n                    <div class="kpi-card">\n                        <div class="kpi-label">Makespan</div>\n                        <div class="kpi-value">{summary["makespan"]} <span style="font-size:0.9rem; font-weight:normal; color:#555555;">units</span></div>\n                    </div>\n                    """,
                     unsafe_allow_html=True,
                 )
-
-            # CPU Execution Timeline (Gantt)
             st.markdown(
-                """
-                <div style="margin-top: 28px;">
-                    <div class="section-eyebrow">03 / Timeline</div>
-                    <div class="section-headline">CPU Execution Timeline</div>
-                </div>
-                """,
+                '<div class="section-title">CPU Execution Timeline</div>',
                 unsafe_allow_html=True,
             )
-
-            idle_slices = identify_idle_intervals(slices)
-            all_timeline_items = []
-            for s in slices:
-                all_timeline_items.append({
-                    "Task ID": s["task_id"],
-                    "Start": s["start_time"],
-                    "End": s["end_time"],
-                    "Duration": s["duration"],
-                    "Is Idle": False,
-                })
-            for idle in idle_slices:
-                all_timeline_items.append({
-                    "Task ID": "Idle",
-                    "Start": idle["start_time"],
-                    "End": idle["end_time"],
-                    "Duration": idle["duration"],
-                    "Is Idle": True,
-                })
-
-            all_timeline_items.sort(key=lambda x: x["Start"])
-
-            # Stitch / Horizon dynamic theme palette
-            stitch_colors = [
-                "#FF5E3A",  # Horizon Coral (Primary)
-                "#38BDF8",  # Sky Blue
-                "#C084FC",  # Lavender Purple
-                "#D6ED7A",  # Lime Green
-                "#FF8A65",  # Peach
-                "#80B1C7",  # Soft Teal
-                "#FFD166",  # Warm Sun
-            ]
-            unique_tasks = sorted(list(set(s["task_id"] for s in slices)))
-            task_color_map = {
-                tid: stitch_colors[i % len(stitch_colors)]
-                for i, tid in enumerate(unique_tasks)
-            }
-
-            fig_timeline = go.Figure()
-
-            for item in all_timeline_items:
-                tid = item["Task ID"]
-                is_idle = item["Is Idle"]
-
-                if is_idle:
-                    bar_color = "rgba(0, 0, 0, 0.05)"
-                    border_color = "rgba(0, 0, 0, 0.15)"
-                    text_color = "#666666"
-                    label = f"Idle [{item['Start']}-{item['End']}]"
-                else:
-                    bar_color = task_color_map.get(tid, "#FF5E3A")
-                    border_color = "rgba(255, 255, 255, 0.9)"
-                    # Contrast text check
-                    text_color = "#3F4C00" if bar_color == "#D6ED7A" else "#FFFFFF"
-                    label = f"{tid} [{item['Start']}-{item['End']}]"
-
-                fig_timeline.add_trace(
-                    go.Bar(
-                        name=tid,
-                        y=["CPU"],
-                        x=[item["Duration"]],
-                        base=[item["Start"]],
-                        orientation="h",
-                        marker=dict(
-                            color=bar_color,
-                            line=dict(color=border_color, width=2),
-                        ),
-                        text=label,
-                        textposition="inside",
-                        insidetextanchor="middle",
-                        textfont=dict(color=text_color, size=12, family="Plus Jakarta Sans, sans-serif"),
-                        hovertemplate=(
-                            f"<b>{'Task ' + tid if not is_idle else 'CPU Idle'}</b><br>"
-                            f"Start: {item['Start']}<br>"
-                            f"End: {item['End']}<br>"
-                            f"Duration: {item['Duration']} units<extra></extra>"
-                        ),
-                        showlegend=(item["Start"] == min(x["Start"] for x in all_timeline_items if x["Task ID"] == tid)),
-                    )
-                )
-
-            fig_timeline.update_layout(
-                barmode="stack",
-                height=180,
-                paper_bgcolor="rgba(255, 255, 255, 0.5)",
-                plot_bgcolor="rgba(255, 255, 255, 0.5)",
-                font=dict(color="#111111", family="Plus Jakarta Sans, sans-serif"),
-                xaxis=dict(
-                    title="Simulation Time (Units)",
-                    title_font=dict(color="#555555", size=12),
-                    tickfont=dict(color="#555555", size=11),
-                    linecolor="rgba(0, 0, 0, 0.1)",
-                    linewidth=1,
-                    tickmode="linear",
-                    tick0=0,
-                    dtick=1 if summary["makespan"] <= 30 else max(1, summary["makespan"] // 20),
-                    range=[0, summary["makespan"] + 0.3],
-                    showgrid=True,
-                    gridcolor="rgba(0, 0, 0, 0.04)",
-                ),
-                yaxis=dict(
-                    showticklabels=False,
-                    showgrid=False,
-                    linecolor="rgba(0, 0, 0, 0.1)",
-                ),
-                margin=dict(l=16, r=16, t=10, b=42),
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.05,
-                    xanchor="left",
-                    x=0,
-                    font=dict(size=11, color="#111111"),
-                ),
-            )
+            fig_timeline = create_gantt_figure(slices, summary["makespan"])
             st.plotly_chart(fig_timeline, use_container_width=True)
-
-            # Results Section: Table and Grouped Comparison Chart
             st.markdown(
-                """
-                <div style="margin-top: 28px;">
-                    <div class="section-eyebrow">04 / Deep Dive</div>
-                    <div class="section-headline">Task Analysis & Distribution</div>
-                </div>
-                """,
+                '<div class="section-title">Task Results & Comparison</div>',
                 unsafe_allow_html=True,
             )
-
             col_tbl, col_plot = st.columns([1, 1], gap="medium")
-
             with col_tbl:
                 results_rows = []
                 for tid in sorted(metrics.keys()):
                     m = metrics[tid]
-                    results_rows.append({
-                        "Task ID": m["task_id"],
-                        "Arrival": m["arrival_time"],
-                        "Burst": m["burst_time"],
-                        "Completion": m["completion_time"],
-                        "Waiting Time": m["waiting_time"],
-                        "Turnaround Time": m["turnaround_time"],
-                    })
+                    results_rows.append(
+                        {
+                            "Task ID": m["task_id"],
+                            "Arrival": m["arrival_time"],
+                            "Burst": m["burst_time"],
+                            "Completion": m["completion_time"],
+                            "Waiting Time": m["waiting_time"],
+                            "Turnaround Time": m["turnaround_time"],
+                        }
+                    )
                 results_df = pd.DataFrame(results_rows)
                 st.dataframe(results_df, use_container_width=True, hide_index=True)
-
             with col_plot:
                 if results_rows:
                     comp_df = pd.DataFrame(results_rows)
                     fig_comp = go.Figure()
-
-                    # Sky Blue for Waiting, Horizon Coral for Turnaround
                     fig_comp.add_trace(
                         go.Bar(
                             x=comp_df["Task ID"],
                             y=comp_df["Waiting Time"],
                             name="Waiting Time",
                             marker=dict(
-                                color="#38BDF8",
-                                line=dict(color="rgba(255, 255, 255, 0.8)", width=1.5),
+                                color="#FFFFFF", line=dict(color="#111111", width=1.5)
                             ),
                             text=comp_df["Waiting Time"],
                             textposition="auto",
-                            textfont=dict(color="#00293B", family="Plus Jakarta Sans"),
+                            textfont=dict(color="#111111"),
                         )
                     )
                     fig_comp.add_trace(
@@ -608,64 +371,264 @@ if st.session_state.sim_run and not validation_error:
                             y=comp_df["Turnaround Time"],
                             name="Turnaround Time",
                             marker=dict(
-                                color="#FF5E3A",
-                                line=dict(color="rgba(255, 255, 255, 0.8)", width=1.5),
+                                color="#2563EB", line=dict(color="#111111", width=1.5)
                             ),
                             text=comp_df["Turnaround Time"],
                             textposition="auto",
-                            textfont=dict(color="#FFFFFF", family="Plus Jakarta Sans"),
+                            textfont=dict(color="#FFFFFF"),
                         )
                     )
-
                     fig_comp.update_layout(
                         barmode="group",
-                        height=290,
-                        paper_bgcolor="rgba(255, 255, 255, 0.5)",
-                        plot_bgcolor="rgba(255, 255, 255, 0.5)",
-                        font=dict(color="#111111", family="Plus Jakarta Sans, sans-serif"),
+                        height=280,
+                        paper_bgcolor="#FFFFFF",
+                        plot_bgcolor="#FFFFFF",
+                        font=dict(color="#111111", family="sans-serif"),
                         xaxis=dict(
                             title="Task ID",
-                            title_font=dict(color="#555555", size=12),
-                            tickfont=dict(color="#555555", size=11),
-                            linecolor="rgba(0, 0, 0, 0.1)",
+                            title_font=dict(color="#111111", size=12),
+                            tickfont=dict(color="#111111", size=11),
+                            linecolor="#111111",
                             linewidth=1,
                             showgrid=False,
                         ),
                         yaxis=dict(
                             title="Time Units",
-                            title_font=dict(color="#555555", size=12),
-                            tickfont=dict(color="#555555", size=11),
-                            linecolor="rgba(0, 0, 0, 0.1)",
+                            title_font=dict(color="#111111", size=12),
+                            tickfont=dict(color="#111111", size=11),
+                            linecolor="#111111",
                             linewidth=1,
                             showgrid=True,
-                            gridcolor="rgba(0, 0, 0, 0.04)",
+                            gridcolor="#F3F4F6",
                         ),
-                        margin=dict(l=16, r=16, t=10, b=42),
+                        margin=dict(l=10, r=10, t=10, b=40),
                         legend=dict(
                             orientation="h",
                             yanchor="bottom",
-                            y=1.04,
+                            y=1.02,
                             xanchor="right",
                             x=1,
                             font=dict(size=11, color="#111111"),
                         ),
                     )
                     st.plotly_chart(fig_comp, use_container_width=True)
-
         except Exception as sim_err:
             st.error(f"Error during simulation execution: {sim_err}")
-else:
-    if not st.session_state.sim_run:
-        st.markdown(
-            """
-            <div class="horizon-empty">
-                <div style="font-weight: 700; font-size: 1.15rem; color: #000000; margin-bottom: 6px;">
-                    Ready to Simulate
-                </div>
-                <div style="font-size: 0.9rem; color: #555555; max-width: 480px; margin: 0 auto;">
-                    Configure your task parameters above or click <b style="color: #FF5E3A;">Run Simulation</b> in the sidebar to visualize the execution timeline.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    else:
+        try:
+            comparison_results = run_algorithm_comparison(
+                validated_tasks, time_quantum=int(time_quantum)
+            )
+            comp_rows = comparison_results["comparison_rows"]
+            best = comparison_results["best_performers"]
+            algos_data = comparison_results["algorithms"]
+            st.markdown(
+                '<div class="section-title">Comparative Performance Overview</div>',
+                unsafe_allow_html=True,
+            )
+            comp_df = pd.DataFrame(comp_rows)
+            st.dataframe(
+                comp_df.style.format(
+                    {
+                        "Avg Waiting Time": "{:.2f}",
+                        "Avg Turnaround Time": "{:.2f}",
+                        "Makespan": "{:d}",
+                        "CPU Utilization (%)": "{:.2f}%",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.markdown(
+                '<div class="section-title">Automated Performance Summary</div>',
+                unsafe_allow_html=True,
+            )
+
+            def format_winners(names: List[str]) -> str:
+                return ", ".join(names) if len(names) > 1 else names[0]
+
+            wait_str = format_winners(best["lowest_waiting"]) + (
+                " (Tied)" if len(best["lowest_waiting"]) > 1 else ""
+            )
+            tat_str = format_winners(best["lowest_turnaround"]) + (
+                " (Tied)" if len(best["lowest_turnaround"]) > 1 else ""
+            )
+            span_str = format_winners(best["shortest_makespan"]) + (
+                " (Tied)" if len(best["shortest_makespan"]) > 1 else ""
+            )
+            util_str = format_winners(best["highest_utilization"]) + (
+                " (Tied)" if len(best["highest_utilization"]) > 1 else ""
+            )
+            st.markdown(
+                f"""\n                <div style="background-color: #F8FAFC; border: 1px solid #111111; border-radius: 4px; padding: 16px; margin-bottom: 20px;">\n                    <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">\n                        <li><b>Lowest Average Waiting Time:</b> <span class="best-badge">{wait_str}</span> ({(comp_rows[0]["Avg Waiting Time"] if len(best["lowest_waiting"]) == 3 else min((r["Avg Waiting Time"] for r in comp_rows))):.2f} units)</li>\n                        <li><b>Lowest Average Turnaround Time:</b> <span class="best-badge">{tat_str}</span> ({min((r["Avg Turnaround Time"] for r in comp_rows)):.2f} units)</li>\n                        <li><b>Shortest Makespan:</b> <span class="best-badge">{span_str}</span> ({min((r["Makespan"] for r in comp_rows))} units)</li>\n                        <li><b>Highest CPU Utilization:</b> <span class="best-badge">{util_str}</span> ({max((r["CPU Utilization (%)"] for r in comp_rows)):.2f}%)</li>\n                    </ul>\n                    <p style="margin: 12px 0 0 0; font-size: 0.85rem; color: #444444;">\n                        <i>Note: Scheduling performance is heavily workload-dependent and influenced by the Round Robin quantum ($q={time_quantum}$). Shortest Job First typically minimizes average waiting time when burst variances are high, while Round Robin provides fair CPU sharing.</i>\n                    </p>\n                </div>\n                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<div class="section-title">Comparative Metric Charts</div>',
+                unsafe_allow_html=True,
+            )
+            chart_col1, chart_col2 = st.columns(2)
+            chart_algos = comp_df["Algorithm"].tolist()
+            with chart_col1:
+                fig_wait = go.Figure(
+                    go.Bar(
+                        x=chart_algos,
+                        y=comp_df["Avg Waiting Time"],
+                        marker=dict(
+                            color="#2563EB", line=dict(color="#111111", width=1.5)
+                        ),
+                        text=comp_df["Avg Waiting Time"].apply(lambda v: f"{v:.2f}"),
+                        textposition="auto",
+                    )
+                )
+                fig_wait.update_layout(
+                    title="Average Waiting Time (Lower is Better)",
+                    title_font=dict(size=13, color="#111111"),
+                    height=240,
+                    paper_bgcolor="#FFFFFF",
+                    plot_bgcolor="#FFFFFF",
+                    font=dict(color="#111111", family="sans-serif"),
+                    xaxis=dict(linecolor="#111111", linewidth=1, showgrid=False),
+                    yaxis=dict(
+                        title="Time Units",
+                        linecolor="#111111",
+                        linewidth=1,
+                        showgrid=True,
+                        gridcolor="#F3F4F6",
+                    ),
+                    margin=dict(l=10, r=10, t=35, b=20),
+                )
+                st.plotly_chart(fig_wait, use_container_width=True)
+            with chart_col2:
+                fig_tat = go.Figure(
+                    go.Bar(
+                        x=chart_algos,
+                        y=comp_df["Avg Turnaround Time"],
+                        marker=dict(
+                            color="#3B82F6", line=dict(color="#111111", width=1.5)
+                        ),
+                        text=comp_df["Avg Turnaround Time"].apply(lambda v: f"{v:.2f}"),
+                        textposition="auto",
+                    )
+                )
+                fig_tat.update_layout(
+                    title="Average Turnaround Time (Lower is Better)",
+                    title_font=dict(size=13, color="#111111"),
+                    height=240,
+                    paper_bgcolor="#FFFFFF",
+                    plot_bgcolor="#FFFFFF",
+                    font=dict(color="#111111", family="sans-serif"),
+                    xaxis=dict(linecolor="#111111", linewidth=1, showgrid=False),
+                    yaxis=dict(
+                        title="Time Units",
+                        linecolor="#111111",
+                        linewidth=1,
+                        showgrid=True,
+                        gridcolor="#F3F4F6",
+                    ),
+                    margin=dict(l=10, r=10, t=35, b=20),
+                )
+                st.plotly_chart(fig_tat, use_container_width=True)
+            chart_col3, chart_col4 = st.columns(2)
+            with chart_col3:
+                fig_span = go.Figure(
+                    go.Bar(
+                        x=chart_algos,
+                        y=comp_df["Makespan"],
+                        marker=dict(
+                            color="#1D4ED8", line=dict(color="#111111", width=1.5)
+                        ),
+                        text=comp_df["Makespan"],
+                        textposition="auto",
+                    )
+                )
+                fig_span.update_layout(
+                    title="Makespan / Total Duration",
+                    title_font=dict(size=13, color="#111111"),
+                    height=240,
+                    paper_bgcolor="#FFFFFF",
+                    plot_bgcolor="#FFFFFF",
+                    font=dict(color="#111111", family="sans-serif"),
+                    xaxis=dict(linecolor="#111111", linewidth=1, showgrid=False),
+                    yaxis=dict(
+                        title="Time Units",
+                        linecolor="#111111",
+                        linewidth=1,
+                        showgrid=True,
+                        gridcolor="#F3F4F6",
+                    ),
+                    margin=dict(l=10, r=10, t=35, b=20),
+                )
+                st.plotly_chart(fig_span, use_container_width=True)
+            with chart_col4:
+                fig_util = go.Figure(
+                    go.Bar(
+                        x=chart_algos,
+                        y=comp_df["CPU Utilization (%)"],
+                        marker=dict(
+                            color="#60A5FA", line=dict(color="#111111", width=1.5)
+                        ),
+                        text=comp_df["CPU Utilization (%)"].apply(
+                            lambda v: f"{v:.1f}%"
+                        ),
+                        textposition="auto",
+                    )
+                )
+                fig_util.update_layout(
+                    title="CPU Utilization (%)",
+                    title_font=dict(size=13, color="#111111"),
+                    height=240,
+                    paper_bgcolor="#FFFFFF",
+                    plot_bgcolor="#FFFFFF",
+                    font=dict(color="#111111", family="sans-serif"),
+                    xaxis=dict(linecolor="#111111", linewidth=1, showgrid=False),
+                    yaxis=dict(
+                        title="Percentage (%)",
+                        range=[0, 105],
+                        linecolor="#111111",
+                        linewidth=1,
+                        showgrid=True,
+                        gridcolor="#F3F4F6",
+                    ),
+                    margin=dict(l=10, r=10, t=35, b=20),
+                )
+                st.plotly_chart(fig_util, use_container_width=True)
+            st.markdown(
+                '<div class="section-title">Execution Timelines (Gantt Comparison)</div>',
+                unsafe_allow_html=True,
+            )
+            max_span = max((r["Makespan"] for r in comp_rows))
+            tab_rr, tab_fcfs, tab_sjf = st.tabs(
+                [
+                    "Round Robin (RR)",
+                    "First Come, First Served (FCFS)",
+                    "Shortest Job First (SJF)",
+                ]
+            )
+            with tab_rr:
+                fig_rr = create_gantt_figure(
+                    algos_data["Round Robin (RR)"]["slices"], max_span
+                )
+                st.plotly_chart(fig_rr, use_container_width=True, key="gantt_comp_rr")
+            with tab_fcfs:
+                fig_fcfs = create_gantt_figure(
+                    algos_data["First Come, First Served (FCFS)"]["slices"], max_span
+                )
+                st.plotly_chart(
+                    fig_fcfs, use_container_width=True, key="gantt_comp_fcfs"
+                )
+            with tab_sjf:
+                fig_sjf = create_gantt_figure(
+                    algos_data["Shortest Job First (SJF)"]["slices"], max_span
+                )
+                st.plotly_chart(fig_sjf, use_container_width=True, key="gantt_comp_sjf")
+        except Exception as comp_err:
+            st.error(f"Error during algorithm comparison execution: {comp_err}")
+elif not st.session_state.sim_run:
+    prompt_text = (
+        "Run Simulation" if app_mode == "Individual Simulation" else "Run Comparison"
+    )
+    st.markdown(
+        f'\n            <div class="empty-state">\n                <p style="margin: 0; font-weight: 500; font-size: 1rem; color: #111111;">Ready to Simulate</p>\n                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #555555;">\n                    Configure the task workload above and click <b>{prompt_text}</b> in the sidebar to execute.\n                </p>\n            </div>\n            ',
+        unsafe_allow_html=True,
+    )
