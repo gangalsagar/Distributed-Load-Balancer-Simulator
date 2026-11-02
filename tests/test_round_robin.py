@@ -59,6 +59,45 @@ class TestRoundRobinScheduler(unittest.TestCase):
         self.assertEqual(metrics["T1"]["waiting_time"], 3)
         self.assertEqual(metrics["T2"]["waiting_time"], 5)
 
+<<<<<<< HEAD
+=======
+    def test_tasks_arriving_at_different_times_and_during_execution(self):
+        tasks = [
+            {"task_id": "A", "arrival_time": 0, "burst_time": 4},
+            {"task_id": "B", "arrival_time": 1, "burst_time": 2},
+        ]
+        slices, metrics = round_robin_schedule(tasks, time_quantum=3)
+        self.assertEqual(len(slices), 3)
+        self.assertEqual(slices[0]["task_id"], "A")
+        self.assertEqual(slices[1]["task_id"], "B")
+        self.assertEqual(slices[2]["task_id"], "A")
+        self.assertEqual(metrics["B"]["completion_time"], 5)
+        self.assertEqual(metrics["A"]["completion_time"], 6)
+
+    def test_burst_times_shorter_equal_longer_than_quantum(self):
+        tasks = [
+            {"task_id": "SHORT", "arrival_time": 0, "burst_time": 1},
+            {"task_id": "EQUAL", "arrival_time": 0, "burst_time": 3},
+            {"task_id": "LONG", "arrival_time": 0, "burst_time": 7},
+        ]
+        slices, metrics = round_robin_schedule(tasks, time_quantum=3)
+        self.assertEqual(metrics["SHORT"]["completion_time"], 1)
+        self.assertEqual(metrics["EQUAL"]["completion_time"], 4)
+        self.assertEqual(metrics["LONG"]["completion_time"], 11)
+
+    def test_cpu_idle_before_first_task_and_gaps(self):
+        tasks = [
+            {"task_id": "T1", "arrival_time": 5, "burst_time": 2},
+            {"task_id": "T2", "arrival_time": 10, "burst_time": 3},
+        ]
+        slices, metrics = round_robin_schedule(tasks, time_quantum=2)
+        self.assertEqual(slices[0]["start_time"], 5)
+        self.assertEqual(slices[0]["end_time"], 7)
+        self.assertEqual(metrics["T1"]["completion_time"], 7)
+        self.assertEqual(slices[1]["start_time"], 10)
+        self.assertEqual(metrics["T2"]["completion_time"], 13)
+
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
     def test_empty_task_list(self):
         slices, metrics = round_robin_schedule([])
         self.assertEqual(slices, [])
@@ -71,6 +110,47 @@ class TestRoundRobinScheduler(unittest.TestCase):
             round_robin_schedule([], time_quantum=True)
         with self.assertRaises(ValueError):
             round_robin_schedule([], time_quantum=0)
+<<<<<<< HEAD
+=======
+        with self.assertRaises(ValueError):
+            round_robin_schedule([], time_quantum=-2)
+        with self.assertRaises(TypeError):
+            round_robin_schedule("not_a_list")
+        with self.assertRaises(ValueError):
+            round_robin_schedule(
+                [{"task_id": "T1", "arrival_time": -1, "burst_time": 2}]
+            )
+
+    def test_input_tasks_remain_unchanged(self):
+        original = [
+            {"task_id": "T1", "arrival_time": 0, "burst_time": 5},
+            {"task_id": "T2", "arrival_time": 1, "burst_time": 3},
+        ]
+        original_copy = [dict(t) for t in original]
+        round_robin_schedule(original, time_quantum=2)
+        self.assertEqual(original, original_copy)
+        self.assertNotIn("remaining_time", original[0])
+        self.assertNotIn("status", original[0])
+        self.assertNotIn("_order", original[0])
+
+    def test_causality_and_single_completion(self):
+        tasks = [
+            {"task_id": "T1", "arrival_time": 4, "burst_time": 6},
+            {"task_id": "T2", "arrival_time": 6, "burst_time": 2},
+        ]
+        slices, metrics = round_robin_schedule(tasks, time_quantum=2)
+        completed_events = {}
+        for s in slices:
+            arrival = metrics[s["task_id"]]["arrival_time"]
+            self.assertGreaterEqual(s["start_time"], arrival)
+            if s["completed"]:
+                completed_events[s["task_id"]] = (
+                    completed_events.get(s["task_id"], 0) + 1
+                )
+        for task in tasks:
+            tid = task["task_id"]
+            self.assertEqual(completed_events.get(tid), 1)
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
 
 
 if __name__ == "__main__":

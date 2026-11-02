@@ -36,6 +36,24 @@ class TestFCFSScheduler(unittest.TestCase):
         self.assertEqual(metrics["T4"]["turnaround_time"], 15)
         self.assertEqual(metrics["T4"]["waiting_time"], 13)
 
+<<<<<<< HEAD
+=======
+    def test_tasks_supplied_out_of_arrival_order(self):
+        tasks = [
+            {"task_id": "T3", "arrival_time": 4, "burst_time": 2},
+            {"task_id": "T1", "arrival_time": 0, "burst_time": 3},
+            {"task_id": "T2", "arrival_time": 2, "burst_time": 4},
+        ]
+        slices, metrics = fcfs_schedule(tasks)
+        self.assertEqual([s["task_id"] for s in slices], ["T1", "T2", "T3"])
+        self.assertEqual(slices[0]["start_time"], 0)
+        self.assertEqual(slices[0]["end_time"], 3)
+        self.assertEqual(slices[1]["start_time"], 3)
+        self.assertEqual(slices[1]["end_time"], 7)
+        self.assertEqual(slices[2]["start_time"], 7)
+        self.assertEqual(slices[2]["end_time"], 9)
+
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
     def test_equal_arrival_times_tie_breaker(self):
         tasks = [
             {"task_id": "Task_C", "arrival_time": 0, "burst_time": 2},
@@ -53,10 +71,62 @@ class TestFCFSScheduler(unittest.TestCase):
         ]
         slices, metrics = fcfs_schedule(tasks)
         self.assertEqual(len(slices), 2)
+<<<<<<< HEAD
         self.assertEqual(slices[0]["start_time"], 5)
         self.assertEqual(slices[0]["end_time"], 8)
         self.assertEqual(slices[1]["start_time"], 12)
         self.assertEqual(slices[1]["end_time"], 16)
+=======
+        self.assertEqual(slices[0]["task_id"], "T1")
+        self.assertEqual(slices[0]["start_time"], 5)
+        self.assertEqual(slices[0]["end_time"], 8)
+        self.assertEqual(metrics["T1"]["waiting_time"], 0)
+        self.assertEqual(metrics["T1"]["turnaround_time"], 3)
+        self.assertEqual(slices[1]["task_id"], "T2")
+        self.assertEqual(slices[1]["start_time"], 12)
+        self.assertEqual(slices[1]["end_time"], 16)
+        self.assertEqual(metrics["T2"]["waiting_time"], 0)
+        self.assertEqual(metrics["T2"]["turnaround_time"], 4)
+
+    def test_empty_task_list(self):
+        slices, metrics = fcfs_schedule([])
+        self.assertEqual(slices, [])
+        self.assertEqual(metrics, {})
+
+    def test_invalid_task_input(self):
+        with self.assertRaises(TypeError):
+            fcfs_schedule("not_a_list")
+        with self.assertRaises(TypeError):
+            fcfs_schedule(
+                [{"task_id": "T1", "arrival_time": "invalid", "burst_time": 5}]
+            )
+        with self.assertRaises(ValueError):
+            fcfs_schedule([{"task_id": "T1", "arrival_time": -1, "burst_time": 5}])
+        with self.assertRaises(ValueError):
+            fcfs_schedule([{"task_id": "T1", "arrival_time": 0, "burst_time": 0}])
+
+    def test_input_tasks_remain_unchanged(self):
+        original_tasks = [
+            {"task_id": "T1", "arrival_time": 2, "burst_time": 4},
+            {"task_id": "T2", "arrival_time": 0, "burst_time": 3},
+        ]
+        snapshot = copy.deepcopy(original_tasks)
+        slices, metrics = fcfs_schedule(original_tasks)
+        self.assertEqual(original_tasks, snapshot)
+
+    def test_every_task_executes_once_and_completes(self):
+        tasks = [
+            {"task_id": "T1", "arrival_time": 0, "burst_time": 5},
+            {"task_id": "T2", "arrival_time": 1, "burst_time": 4},
+            {"task_id": "T3", "arrival_time": 2, "burst_time": 3},
+        ]
+        slices, metrics = fcfs_schedule(tasks)
+        self.assertEqual(len(slices), 3)
+        self.assertEqual(len(metrics), 3)
+        for s in slices:
+            self.assertTrue(s["completed"])
+            self.assertEqual(s["remaining_time"], 0)
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
 
 
 if __name__ == "__main__":

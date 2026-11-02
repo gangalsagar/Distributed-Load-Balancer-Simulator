@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import copy
 from typing import Any, Dict, List
 
@@ -108,3 +109,6 @@ def simulate_cluster(
         "avg_turnaround_time": avg_turnaround,
         "avg_cpu_utilization": avg_cpu_util,
     }
+=======
+
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1

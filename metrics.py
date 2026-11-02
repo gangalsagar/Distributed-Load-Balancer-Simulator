@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import copy
+=======
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
 from typing import Any, Dict, List
 
 
@@ -68,6 +71,11 @@ def identify_idle_intervals(
 def run_algorithm_comparison(
     tasks: List[Dict[str, Any]], time_quantum: int = 2
 ) -> Dict[str, Any]:
+<<<<<<< HEAD
+=======
+    import copy
+
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
     from schedulers.fcfs import fcfs_schedule
     from schedulers.round_robin import round_robin_schedule
     from schedulers.sjf import sjf_schedule
@@ -87,19 +95,28 @@ def run_algorithm_comparison(
             "slices": rr_slices,
             "metrics": rr_metrics,
             "summary": rr_summary,
+<<<<<<< HEAD
             "idle_intervals": identify_idle_intervals(rr_slices),
+=======
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
         },
         "First Come, First Served (FCFS)": {
             "slices": fcfs_slices,
             "metrics": fcfs_metrics,
             "summary": fcfs_summary,
+<<<<<<< HEAD
             "idle_intervals": identify_idle_intervals(fcfs_slices),
+=======
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
         },
         "Shortest Job First (SJF)": {
             "slices": sjf_slices,
             "metrics": sjf_metrics,
             "summary": sjf_summary,
+<<<<<<< HEAD
             "idle_intervals": identify_idle_intervals(sjf_slices),
+=======
+>>>>>>> 4ab66d6ce60f640de08a69a5ff3c9989b6d222f1
         },
     }
     comparison_rows = [
