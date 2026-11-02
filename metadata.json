@@ -1,0 +1,8 @@
+{
+  "name": "Distributed Load Balancer Simulator",
+  "description": "Interactive CPU task scheduling and load balancing simulator supporting Round Robin, FCFS, and SJF with Gantt charts and performance metrics.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

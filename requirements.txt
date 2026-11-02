@@ -1,0 +1,4 @@
+# Distributed Load Balancer Simulator
+# This project is written entirely in pure Python 3 using the standard library.
+# It runs with zero external pip dependencies out of the box.
+# (Tested on Python 3.10+)
